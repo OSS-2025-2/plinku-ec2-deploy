@@ -161,4 +161,58 @@ paths:
                   error_code:
                     type: string
                     example: NOT_FOUND
-  
+  /api/reservations:
+    post:
+      summary: 주차장 예약 생성
+      description: 사용자가 주차장을 예약합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  example: 1
+                parking_id:
+                  type: integer
+                  example: 2
+                start_time:
+                  type: string
+                  format: date-time
+                  example: "2025-11-10T10:00:00"
+                end_time:
+                  type: string
+                  format: date-time
+                  example: "2025-11-10T12:00:00"
+      responses:
+        '200':
+          description: 예약 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 주차장 예약이 완료되었습니다.
+        '404':
+          description: 존재하지 않는 주차장
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: fail
+                  message:
+                    type: string
+                    example: 존재하지 않는 주차장입니다.
+                  error_code:
+                    type: string
+                    example: NOT_FOUND
