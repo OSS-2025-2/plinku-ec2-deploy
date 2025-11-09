@@ -34,5 +34,4 @@ PARKINGS = {
     }
 }
 
-#임시 예약 저장소
-RESERVATIONS = []
+

@@ -15,12 +15,19 @@ def list_parkings():
     ev_filter = request.args.get("ev_charger")              # true/false
     keyword = request.args.get("keyword", default="").lower()
 
+    # 버튼 클릭에 따라 기본값 전달 가능
+    # 기본: 주차장 리스트
+    ev_filter = request.args.get("ev_charger")
+    if ev_filter is None:
+        ev_filter = "false"
+
+
     #주차장 탐색 필터링
     """수업 중 배운 지능형 리스트를 사용하여 results를 생성"""
     results = [
         p for p in PARKINGS.values()
         if (not congestion_filter or p.get("congestion") == congestion_filter)
-        and (not ev_filter or str(p.get("ev_charger", False)).lower() == ev_filter.lower())
+        and (str(p.get("ev_charger", False)).lower() == ev_filter.lower())
         and (keyword in p.get("parking_name", "").lower() or keyword in p.get("address", "").lower())
     ]
     #원래문단
