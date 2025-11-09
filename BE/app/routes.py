@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify,request
-from .sample_data import PARKINGS, RESERVATIONS
+from .sample_data import PARKINGS
 main = Blueprint('main', __name__)
 
 
@@ -23,6 +23,17 @@ def list_parkings():
         and (not ev_filter or str(p.get("ev_charger", False)).lower() == ev_filter.lower())
         and (keyword in p.get("parking_name", "").lower() or keyword in p.get("address", "").lower())
     ]
+    #원래문단
+    #results = []
+    #for p in PARKINGS.values():
+    # if congestion_filter and p.get("congestion") != congestion_filter:
+        #continue
+    # if ev_filter and str(p.get("ev_charger", False)).lower() != ev_filter.lower():
+        #continue
+    # if not (keyword in p.get("parking_name", "").lower() or
+            # keyword in p.get("address", "").lower()):
+        #continue
+    #results.append(p)
 
     #정렬
     reverse = (order == "desc")
@@ -60,7 +71,8 @@ def list_parkings():
     }), 200
 
 
-#주차장 정보 조회 
+
+
 @main.route('/api/parkings/<int:id>', methods=['GET'])
 def get_parking(id):
     parking = PARKINGS.get(id)
@@ -68,44 +80,13 @@ def get_parking(id):
     if not parking:
         return jsonify({
             "status": "fail",
-            "message": "주차장 정보를 불러올 수 없습니다.",
+            "message": "주차장 또는 충전소 정보를 불러올 수 없습니다.",
             "error_code": "NOT_FOUND"
         }), 404
 
     return jsonify({
         "status": "success",
-        "message": "주차장 정보를 불러왔습니다.",
+        "message": f"{'충전소' if parking['type'] == 'charger' else '주차장'} 정보를 불러왔습니다.",
         "data": parking
-    }),200
-
-#주차장 예약 생성
-@main.route('/api/reservations', methods=['POST'])
-def reserve_parking():
-    data = request.get_json()
-    user_id = data.get("user_id")
-    parking_id = data.get("parking_id")
-    start_time = data.get("start_time")
-    end_time = data.get("end_time")
-
-
-    # 주차장이 존재하는지
-    parking = PARKINGS.get(parking_id)
-    if not parking:
-        return jsonify({
-            "status": "fail",
-            "message": "존재하지 않는 주차장입니다.",
-            "error_code": "NOT_FOUND"
-        }), 404
-
-    # 예약 추가 (실제 DB 대신 리스트) -> DB 구현되면 바꾸면 됩니다.
-    RESERVATIONS.append({
-        "user_id": user_id,
-        "parking_id": parking_id,
-        "start_time": start_time,
-        "end_time": end_time
-    })
-
-    return jsonify({
-        "status": "success",
-        "message": "주차장 예약이 완료되었습니다."
     }), 200
+

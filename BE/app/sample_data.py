@@ -14,7 +14,8 @@ PARKINGS = {
         ],
         "buttons": {"reserve": True, "route": True},
         "ev_charger": False,
-        "congestion": "low"  # low / medium / high
+        "congestion": "low", # low / medium / high
+        "type" : "parking" # parking or charger
     }
     ,
     2: {
@@ -28,7 +29,8 @@ PARKINGS = {
         "layout": [],
         "buttons": {"reserve": True, "route": True},
         "ev_charger": False,
-        "congestion": "high"
+        "congestion": "high",
+        "type" : "parking" 
     }
 }
 

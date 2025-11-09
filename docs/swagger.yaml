@@ -1,9 +1,8 @@
 openapi: 3.0.3
 info:
-  title: FlinkU Project Parking API
+  title: Parking API
   version: 1.0.0
-  description: FlinkU 프로젝트 주차장 관련 API 문서
-
+  description: 주차장/충전소 탐색 API
 servers:
   - url: http://localhost:5000
     description: Local server
@@ -11,50 +10,64 @@ servers:
 paths:
   /api/parkings:
     get:
-      summary: 주차장 목록 조회
-      description: 필터, 정렬, 페이지네이션 기능 포함
+      summary: 주차장/충전소 목록 조회
+      description: |
+        주차장과 EV 충전소 정보를 조회합니다.
+        필터링, 정렬, 페이지네이션을 지원합니다.
       parameters:
-        - in: query
-          name: page
+        - name: page
+          in: query
+          description: 페이지 번호 (기본값: 1)
+          required: false
           schema:
             type: integer
-          description: 페이지 번호 (기본값 1)
-        - in: query
-          name: size
+            default: 1
+        - name: size
+          in: query
+          description: 페이지 당 항목 수 (기본값: 10)
+          required: false
           schema:
             type: integer
-          description: 페이지 크기 (기본값 10)
-        - in: query
-          name: sort
+            default: 10
+        - name: sort
+          in: query
+          description: 정렬 기준 (distance_km 등)
+          required: false
           schema:
             type: string
-          description: 정렬 기준 (distance_km 등)
-        - in: query
-          name: order
+            default: distance_km
+        - name: order
+          in: query
+          description: 정렬 방향 (asc / desc)
+          required: false
           schema:
             type: string
             enum: [asc, desc]
-          description: 오름차순 / 내림차순
-        - in: query
-          name: congestion
+            default: asc
+        - name: congestion
+          in: query
+          description: 혼잡도 필터 (low, medium, high)
+          required: false
           schema:
             type: string
             enum: [low, medium, high]
-          description: 혼잡도 필터
-        - in: query
-          name: ev_charger
+        - name: ev_charger
+          in: query
+          description: EV 충전소 필터 (true/false)
+          required: false
           schema:
             type: string
             enum: [true, false]
-          description: 전기차 충전소 여부 필터
-        - in: query
-          name: keyword
+        - name: keyword
+          in: query
+          description: 이름 또는 주소 검색 키워드
+          required: false
           schema:
             type: string
-          description: 이름 또는 주소 키워드 검색
+            default: ""
       responses:
         '200':
-          description: 성공
+          description: 성공적으로 조회됨
           content:
             application/json:
               schema:
@@ -86,67 +99,36 @@ paths:
                         items:
                           type: object
                           properties:
-                            id:
+                            parking_id:
                               type: integer
                               example: 1
                             parking_name:
                               type: string
-                              example: 대전역 주차장
+                              example: 국립한밭대학교
                             address:
                               type: string
-                              example: 대전 광역시 동구 중앙로 215
+                              example: 대전광역시 유성구 대학로 125
+                            price_per_hour:
+                              type: integer
+                              example: 1500
+                            total_spots:
+                              type: integer
+                              example: 10
+                            available_spots:
+                              type: integer
+                              example: 3
+                            distance_km:
+                              type: number
+                              format: float
+                              example: 0.5
                             congestion:
                               type: string
                               example: low
                             ev_charger:
                               type: boolean
                               example: true
-
-  /api/parkings/{id}:
-    get:
-      summary: 주차장 단일 조회
-      description: 주차장 상세 정보 조회
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          description: 조회할 주차장 ID
-      responses:
-        '200':
-          description: 성공
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: 주차장 정보를 불러왔습니다.
-                  data:
-                    type: object
-                    properties:
-                      id:
-                        type: integer
-                        example: 1
-                      parking_name:
-                        type: string
-                        example: 대전역 주차장
-                      address:
-                        type: string
-                        example: 대전광역시 동구 중앙로 214
-                      congestion:
-                        type: string
-                        example: low
-                      ev_charger:
-                        type: boolean
-                        example: true
-        '404':
-          description: 존재하지 않는 주차장
+        '400':
+          description: 잘못된 요청
           content:
             application/json:
               schema:
@@ -157,62 +139,4 @@ paths:
                     example: fail
                   message:
                     type: string
-                    example: 주차장 정보를 불러올 수 없습니다.
-                  error_code:
-                    type: string
-                    example: NOT_FOUND
-  /api/reservations:
-    post:
-      summary: 주차장 예약 생성
-      description: 사용자가 주차장을 예약합니다.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                user_id:
-                  type: integer
-                  example: 1
-                parking_id:
-                  type: integer
-                  example: 2
-                start_time:
-                  type: string
-                  format: date-time
-                  example: "2025-11-10T10:00:00"
-                end_time:
-                  type: string
-                  format: date-time
-                  example: "2025-11-10T12:00:00"
-      responses:
-        '200':
-          description: 예약 성공
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: 주차장 예약이 완료되었습니다.
-        '404':
-          description: 존재하지 않는 주차장
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: fail
-                  message:
-                    type: string
-                    example: 존재하지 않는 주차장입니다.
-                  error_code:
-                    type: string
-                    example: NOT_FOUND
+                    example: 잘못된 요청입니다.
