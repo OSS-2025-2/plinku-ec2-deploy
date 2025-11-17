@@ -1,6 +1,8 @@
 from flask import Flask
 # from app.routes.parking_routes import parking_bp
 from app.routes.parking_routes import parking_bp
+from app.data.init_db import init_db
+
 
 def create_app():
     app = Flask(__name__)
@@ -8,4 +10,7 @@ def create_app():
     # 예시:
     # app.register_blueprint(parking_bp)
     app.register_blueprint(parking_bp)
+
+    init_db()
+        
     return app

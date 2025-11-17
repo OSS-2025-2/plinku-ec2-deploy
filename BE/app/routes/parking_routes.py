@@ -1,63 +1,71 @@
-from flask import Blueprint, jsonify, request
-from app.data.sample_data import PARKINGS
+from flask import Blueprint, request, jsonify
+from config import get_db
 
-parking_bp = Blueprint("parking", __name__)   
-
-# 주차장 탐색
-@parking_bp.route("/api/parkings", methods=["GET"])
-def list_parkings():
-    page = request.args.get("page", default=1, type=int)
-    size = request.args.get("size", default=10, type=int)
-    sort = request.args.get("sort", default="distance_km")
-    order = request.args.get("order", default="asc")
-    congestion_filter = request.args.get("congestion")
-    ev_filter = request.args.get("ev_charger", "false")
-    keyword = request.args.get("keyword", default="").lower()
-
-    results = [
-        p for p in PARKINGS.values()
-        if (not congestion_filter or p.get("congestion") == congestion_filter)
-        and (str(p.get("ev_charger", False)).lower() == ev_filter.lower())
-        and (keyword in p.get("parking_name", "").lower() or keyword in p.get("address", "").lower())
-    ]
-
-    reverse = (order == "desc")
-    results.sort(key=lambda x: x.get(sort, 0), reverse=reverse)
-
-    total_count = len(results)
-    start = (page - 1) * size
-    end = start + size
-    paginated_results = results[start:end]
-
-    result_type = "charger" if ev_filter.lower() == "true" else "parking"
-
-    return jsonify({
-        "status": "success",
-        "message": f"{result_type} 정보를 불러왔습니다.",
-        "data": {
-            "type": result_type,
-            "total_count": total_count,
-            "page": page,
-            "size": size,
-            "results": paginated_results
-        }
-    }), 200
+parking_bp = Blueprint("parking", __name__)
 
 
-# 주차장 상세 조회
-@parking_bp.route("/api/parkings/<int:id>", methods=["GET"])
-def get_parking(id):
-    parking = PARKINGS.get(id)
+# GET /api/parkings
+@parking_bp.route("/parkings", methods=["GET"])
+def get_parkings():
+    sort = request.args.get("sort")
+    order = request.args.get("order", "asc")
 
-    if not parking:
-        return jsonify({
-            "status": "fail",
-            "message": "주차장 또는 충전소 정보를 불러올 수 없습니다.",
-            "error_code": "NOT_FOUND"
-        }), 404
+    conn = get_db()
+    cur = conn.cursor()
 
-    return jsonify({
-        "status": "success",
-        "message": f"{'충전소' if parking['type'] == 'charger' else '주차장'} 정보를 불러왔습니다.",
-        "data": parking
-    }), 200
+    sql = "SELECT * FROM parking"
+
+    # 정렬 옵션 처리
+    if sort in ["congestion", "ev_charge"]:
+        sql += f" ORDER BY {sort} {order.upper()}"
+
+    rows = cur.execute(sql).fetchall()
+
+    data = [dict(row) for row in rows]
+    return jsonify({"status": "success", "data": data})
+
+
+# GET /api/parkings/<id>
+@parking_bp.route("/parkings/<int:parking_id>", methods=["GET"])
+def get_parking_detail(parking_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    row = cur.execute("SELECT * FROM parking WHERE id = ?", (parking_id,)).fetchone()
+    if not row:
+        return jsonify({"status": "fail", "message": "Not Found"}), 404
+
+    return jsonify({"status": "success", "data": dict(row)})
+
+
+# POST /api/reservations
+@parking_bp.route("/reservations", methods=["POST"])
+def create_reservation():
+    data = request.json
+    user_id = data.get("user_id")
+    parking_id = data.get("parking_id")
+    start_time = data.get("start_time")
+    end_time = data.get("end_time")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO reservations (user_id, parking_id, start_time, end_time)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, parking_id, start_time, end_time))
+
+    conn.commit()
+    return jsonify({"status": "success", "message": "예약 성공"})
+
+
+# DELETE /api/reservations/<id>
+@parking_bp.route("/reservations/<int:reservation_id>", methods=["DELETE"])
+def delete_reservation(reservation_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
+    conn.commit()
+
+    return jsonify({"status": "success", "message": "예약 취소 완료"})
