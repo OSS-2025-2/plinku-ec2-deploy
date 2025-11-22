@@ -1,4 +1,4 @@
-from config import db
+from BE.app.config import db
 
 class Reservation(db.Model):
     __tablename__ = "reservations"

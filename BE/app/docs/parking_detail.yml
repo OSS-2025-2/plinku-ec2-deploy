@@ -1,0 +1,65 @@
+tags:
+  - Parking
+summary: 주차장 상세 조회
+parameters:
+  - name: id
+    in: path
+    required: true
+    type: integer
+    description: 조회할 주차장 ID
+
+responses:
+  200:
+    description: 주차장 상세 정보 반환
+    schema:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            parking_id:
+              type: integer
+            parking_name:
+              type: string
+            address:
+              type: string
+            price_per_hour:
+              type: integer
+            total_spots:
+              type: integer
+            available_spots:
+              type: integer
+            distance_km:
+              type: number
+            layout:
+              type: array
+              items:
+                type: object
+                properties:
+                  spot_id:
+                    type: integer
+                  status:
+                    type: string
+                  color:
+                    type: string
+            buttons:
+              type: object
+              properties:
+                reserve:
+                  type: boolean
+                route:
+                  type: boolean
+  404:
+    description: 주차장 없음
+    schema:
+      type: object
+      properties:
+        status:
+          type: string
+          example: fail
+        message:
+          type: string
+          example: NOT FOUND
