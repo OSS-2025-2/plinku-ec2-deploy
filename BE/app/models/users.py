@@ -1,4 +1,4 @@
-from config import db
+from BE.app.config import db
 
 class User(db.Model):
     __tablename__ = "users"

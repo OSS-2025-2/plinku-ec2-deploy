@@ -1,71 +1,118 @@
+#PLINKU_PROJECT/BE/app/routes/parking_routes.py
+import os
+from flask import current_app
 from flask import Blueprint, request, jsonify
-from config import get_db
+from app.models.parking import Parking, ParkingSpot, ParkingButton
+from app.config import db
+from flasgger import swag_from
+
 
 parking_bp = Blueprint("parking", __name__)
 
-
-# GET /api/parkings
-@parking_bp.route("/parkings", methods=["GET"])
-def get_parkings():
-    sort = request.args.get("sort")
+  # <=== YAML 문서 연결
+@parking_bp.route("/api/parkings", methods=["GET"])
+@swag_from("../docs/parking_list.yml")
+def list_parkings():
+    page = request.args.get("page", 1, type=int)
+    size = request.args.get("size", 10, type=int)
+    sort = request.args.get("sort", "distance_km")
     order = request.args.get("order", "asc")
 
-    conn = get_db()
-    cur = conn.cursor()
+    keyword = request.args.get("keyword", "").lower()
+    ev_filter = request.args.get("ev_charger")
+    congestion_filter = request.args.get("congestion")
 
-    sql = "SELECT * FROM parking"
+    # ---------------------
+    # 기본 쿼리 구성
+    # ---------------------
+    query = Parking.query
 
-    # 정렬 옵션 처리
-    if sort in ["congestion", "ev_charge"]:
-        sql += f" ORDER BY {sort} {order.upper()}"
+    if keyword:
+        query = query.filter(
+            Parking.parking_name.ilike(f"%{keyword}%") |
+            Parking.address.ilike(f"%{keyword}%")
+        )
 
-    rows = cur.execute(sql).fetchall()
+    if ev_filter:
+        query = query.filter(Parking.ev_charge == (ev_filter.lower() == "true"))
 
-    data = [dict(row) for row in rows]
-    return jsonify({"status": "success", "data": data})
+    if congestion_filter:
+        query = query.filter(Parking.congestion == congestion_filter)
+
+    # ---------------------
+    # 정렬
+    # ---------------------
+    sort_column = getattr(Parking, sort, None)
+    if sort_column is None:
+        return jsonify({"error": f"Invalid sort column: {sort}"}), 400
+
+    if order == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+
+    # ---------------------
+    # 페이지네이션
+    # ---------------------
+    paginated = query.paginate(page=page, per_page=size, error_out=False)
+
+    results = []
+    for p in paginated.items:
+        results.append({
+            "id": p.id,
+            "parking_name": p.parking_name,
+            "address": p.address,
+            "price_per_hour": p.price_per_hour,
+            "available_spots": p.available_spots,
+            "distance_km": p.distance_km,
+            "ev_charge": p.ev_charge,
+            "congestion": p.congestion,
+            "type": p.type
+        })
+
+    return jsonify({
+        "status": "success",
+        "page": page,
+        "size": size,
+        "total": paginated.total,
+        "pages": paginated.pages,
+        "results": results
+    })
 
 
-# GET /api/parkings/<id>
-@parking_bp.route("/parkings/<int:parking_id>", methods=["GET"])
-def get_parking_detail(parking_id):
-    conn = get_db()
-    cur = conn.cursor()
+# -----------------------
+# 주차장 상세 정보 조회 API
+# -----------------------
 
-    row = cur.execute("SELECT * FROM parking WHERE id = ?", (parking_id,)).fetchone()
-    if not row:
-        return jsonify({"status": "fail", "message": "Not Found"}), 404
+@parking_bp.route("/api/parkings/<int:id>", methods=["GET"])
+@swag_from("../docs/parking_detail.yml")
+def get_parking(id):
+    p = Parking.query.get(id)
+    if not p:
+        return jsonify({"status": "fail", "message": "NOT FOUND"}), 404
 
-    return jsonify({"status": "success", "data": dict(row)})
+    spots = []
+    for s in p.spots:
+        spots.append({
+            "spot_id": s.spot_id,
+            "status": s.status,
+            "color": s.color
+        })
 
-
-# POST /api/reservations
-@parking_bp.route("/reservations", methods=["POST"])
-def create_reservation():
-    data = request.json
-    user_id = data.get("user_id")
-    parking_id = data.get("parking_id")
-    start_time = data.get("start_time")
-    end_time = data.get("end_time")
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO reservations (user_id, parking_id, start_time, end_time)
-        VALUES (?, ?, ?, ?)
-    """, (user_id, parking_id, start_time, end_time))
-
-    conn.commit()
-    return jsonify({"status": "success", "message": "예약 성공"})
-
-
-# DELETE /api/reservations/<id>
-@parking_bp.route("/reservations/<int:reservation_id>", methods=["DELETE"])
-def delete_reservation(reservation_id):
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
-    conn.commit()
-
-    return jsonify({"status": "success", "message": "예약 취소 완료"})
+    return jsonify({
+        "status": "success",
+        "data": {
+            "parking_id": p.id,
+            "parking_name": p.parking_name,
+            "address": p.address,
+            "price_per_hour": p.price_per_hour,
+            "total_spots": p.total_spots,
+            "available_spots": p.available_spots,
+            "distance_km": p.distance_km,
+            "layout": spots,
+            "buttons": {
+                "reserve": True,
+                "route": True
+            }
+        }
+    })
