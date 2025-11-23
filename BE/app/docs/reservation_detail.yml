@@ -1,0 +1,53 @@
+tags:
+  - Reservation
+summary: 예약 상세 조회
+parameters:
+  - name: id
+    in: path
+    type: integer
+    required: true
+    description: 예약 ID
+responses:
+  200:
+    description: 예약 상세 조회 성공
+    schema:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 주차장 예약 정보를 불러왔습니다.
+        data:
+          type: object
+          properties:
+            reservation_id:
+              type: integer
+            user_id:
+              type: integer
+            parking_id:
+              type: integer
+            parking_name:
+              type: string
+            address:
+              type: string
+            start_time:
+              type: string
+            end_time:
+              type: string
+            status:
+              type: string
+            price_per_hour:
+              type: number
+            total_price:
+              type: number
+            buttons:
+              type: object
+              properties:
+                cancel:
+                  type: boolean
+                route:
+                  type: boolean
+  404:
+    description: 예약 정보 없음

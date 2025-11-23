@@ -1,0 +1,65 @@
+tags:
+  - Reservation
+summary: 주차장 예약 생성
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 1
+        parking_id:
+          type: integer
+          example: 3
+        spot_id:
+          type: integer
+          example: 12
+        start_time:
+          type: string
+          example: "2025-01-01T10:00:00"
+        end_time:
+          type: string
+          example: "2025-01-01T12:00:00"
+responses:
+  200:
+    description: 예약 생성 성공
+    schema:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: 주차장 예약이 완료되었습니다.
+        data:
+          type: object
+          properties:
+            reservation_id:
+              type: integer
+            user_id:
+              type: integer
+            parking_id:
+              type: integer
+            parking_name:
+              type: string
+            start_time:
+              type: string
+            end_time:
+              type: string
+            price_per_hour:
+              type: number
+            total_price:
+              type: number
+            buttons:
+              type: object
+              properties:
+                cancel:
+                  type: boolean
+                route:
+                  type: boolean
+  400:
+    description: 필수 값 누락 또는 잘못된 요청
