@@ -2,11 +2,15 @@
 from flask import Flask
 from app.config import db
 from app.routes.parking_routes import parking_bp
+from app.routes.auth_routes import auth_bp
 from flasgger import Swagger
 from app.models.parking import Parking, ParkingSpot, ParkingButton
+from app.models.users import User 
 
 def create_app():
     app = Flask(__name__)
+
+    app.config["SECRET_KEY"] = "9b87a7ba" #임의 키코드
 
     # DB 설정
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///parking.db'
@@ -48,6 +52,7 @@ def create_app():
 
     # Blueprint 등록
     app.register_blueprint(parking_bp)
+    app.register_blueprint(auth_bp)
 
     # 🔥 반드시 return app 해야 함
     return app
