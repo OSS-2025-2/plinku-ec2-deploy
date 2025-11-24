@@ -109,8 +109,13 @@ def get_parking(id):
             "total_spots": p.total_spots,
             "available_spots": p.available_spots,
             "distance_km": p.distance_km,
-            "layout": spots,
-            "buttons": {
+            "lat": p.lat, 
+            #FE에쪽에서 Google Maps 네비게이션 URL
+            #const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${parkingLat},${parkingLng}`;
+            # window.location.href = url;
+            "lng": p.lng,
+            "layout": spots,#주차장에 있는 전체 주차 구역(자리) 목록을 프론트에게 전달
+            "buttons": {       #상세 페이지에서 예약하기 버튼,경로 안내 버튼을 보여줄지,UI 표시 여부를 제어하기 위한 값.
                 "reserve": True,
                 "route": True
             }

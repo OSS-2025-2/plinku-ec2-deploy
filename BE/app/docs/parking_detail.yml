@@ -34,6 +34,12 @@ responses:
               type: integer
             distance_km:
               type: number
+            lat:
+              type: number
+              example: 37.5665
+            lng:
+              type: number
+              example: 126.9780
             layout:
               type: array
               items:
@@ -50,8 +56,10 @@ responses:
               properties:
                 reserve:
                   type: boolean
+                  example: true
                 route:
                   type: boolean
+                  example: true
   404:
     description: 주차장 없음
     schema:
