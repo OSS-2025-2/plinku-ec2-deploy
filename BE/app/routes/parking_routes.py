@@ -27,8 +27,7 @@ def list_parkings():
     # 기본 쿼리 구성
     # ---------------------
     query = Parking.query
-
-    # 검색어 필터
+# 검색 기능 (주차장 이름 또는 주소로 검색)
     if keyword:
         query = query.filter(
             Parking.parking_name.ilike(f"%{keyword}%") |
@@ -49,15 +48,15 @@ def list_parkings():
     # ---------------------
     # 정렬
     # ---------------------
-     # 정렬 기준 체크
+    # 정렬 기준 설정 (sort와 order 파라미터 활용)
     sort_column = getattr(Parking, sort, None)
     if sort_column is None:
         return jsonify({"error": f"Invalid sort column: {sort}"}), 400
     # 정렬 방향 (asc / desc)
     if order == "desc":
-        query = query.order_by(sort_column.desc())
+        query = query.order_by(sort_column.desc()) # 내림차순 정렬
     else:
-        query = query.order_by(sort_column.asc())
+        query = query.order_by(sort_column.asc())# 오름차순 정렬
 
     # ---------------------
     # 페이지네이션
