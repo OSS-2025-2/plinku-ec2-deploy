@@ -32,13 +32,14 @@ class ParkingSpot(db.Model):
     spot_id = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), nullable=False)
     color = db.Column(db.String(20), nullable=False)
+    ev_charge = db.Column(db.Boolean, default=False)  # 충전소 여부 추가
 
 
     def set_color(self, parking):
         if self.status == "occupied":
             self.color = "red"
         else:
-            self.color = "blue" if parking.ev_charge else "green"
+            self.color = "blue" if self.ev_charge else "green"
 
 
 class ParkingButton(db.Model):

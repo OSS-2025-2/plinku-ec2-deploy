@@ -17,6 +17,16 @@ parameters:
     type: string
     required: false
     description: 전기차 충전소 여부 (true/false)
+  - name: sort
+    in: query
+    type: string
+    required: false
+    description: 정렬 기준 컬럼명 (예: distance_km, price_per_hour 등)
+  - name: order
+    in: query
+    type: string
+    required: false
+    description: 정렬 방향 (asc, desc)
 responses:
   200:
     description: 성공적으로 주차장 목록 반환
