@@ -27,16 +27,17 @@ class Parking(db.Model):
 class ParkingSpot(db.Model):
     __tablename__ = "parking_spot"
 
-    id = db.Column(db.Integer, primary_key=True)
-    parking_id = db.Column(db.Integer, db.ForeignKey("parking.id"), nullable=False)
+    id = db.Column(db.Integer, primary_key=True) # 기본 키
+    parking_id = db.Column(db.Integer, db.ForeignKey("parking.id"), nullable=False)# 주차장 ID
     spot_id = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), nullable=False)
     color = db.Column(db.String(20), nullable=False)
     ev_charge = db.Column(db.Boolean, default=False)  # 충전소 여부 추가
 
 
+    # 자리 색상 설정 (주차장 타입에 따라 색 다르게)
     def set_color(self, parking):
-        if self.status == "occupied":
+        if self.status == "occupied":# 이미 사용 중이면 빨간색
             self.color = "red"
         else:
             self.color = "blue" if self.ev_charge else "green"
@@ -46,6 +47,6 @@ class ParkingButton(db.Model):
     __tablename__ = "parking_buttons"
 
     id = db.Column(db.Integer, primary_key=True)
-    parking_id = db.Column(db.Integer, db.ForeignKey("parking.id"), nullable=False)
-    reserve_button = db.Column(db.Boolean, default=False)
-    route_button = db.Column(db.Boolean, default=False)
+    parking_id = db.Column(db.Integer, db.ForeignKey("parking.id"), nullable=False)# 주차장 ID
+    reserve_button = db.Column(db.Boolean, default=False)  # 예약 버튼 표시 여부
+    route_button = db.Column(db.Boolean, default=False)   # 경로 안내 버튼 표시 여부

@@ -29,8 +29,15 @@ responses:
               type: integer
             total_spots:
               type: integer
+
+            # 🔥 자리 현황 추가
             available_spots:
               type: integer
+              example: 12
+            occupied_spots:
+              type: integer
+              example: 8
+
             distance_km:
               type: number
             ev_charge:
@@ -56,8 +63,11 @@ responses:
               properties:
                 reserve:
                   type: boolean
+                  example: true
                 route:
                   type: boolean
+                  example: true
+
   404:
     description: 주차장 없음
     schema:
