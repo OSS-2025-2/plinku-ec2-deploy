@@ -72,6 +72,7 @@ responses:
                 type: number
               ev_charge:
                 type: boolean
+                example: true
               congestion:
                 type: string
               type:
