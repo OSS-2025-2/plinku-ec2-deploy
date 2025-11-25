@@ -52,8 +52,12 @@ responses:
               type: string
             price_per_hour:
               type: number
+              description: "주차장의 시간당 요금"
+              example: 5000
             total_price:
               type: number
+              description: "예약 시간에 따라 계산된 총 가격"
+              example: 10000
             buttons:
               type: object
               properties:

@@ -15,6 +15,7 @@ class Reservation(db.Model):
     end_time = db.Column(db.DateTime, nullable=False)
 
     status = db.Column(db.String(20), default="reserved")  # reserved / cancelled / completed
+    total_price = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref="reservations")
