@@ -47,7 +47,7 @@ def create_app():
 
     # DB 테이블 생성
     with app.app_context():
-        db.drop_all()  # 기존 테이블 삭제
+        
         db.create_all()  # 새로운 테이블 생성
 
     # Blueprint 등록
