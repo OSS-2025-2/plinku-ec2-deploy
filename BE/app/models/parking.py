@@ -38,8 +38,8 @@ class ParkingSpot(db.Model):
     def set_color(self, parking):
         if self.status == "occupied":# 이미 사용 중이면 빨간색
             self.color = "red"
-        else:# 해당 주차장이 EV 충전소면 파란색, 아니면 초록색
-            self.color = "blue" if parking.ev_charge else "green"
+        else:
+            self.color = "blue" if self.ev_charge else "green"
 
 
 class ParkingButton(db.Model):

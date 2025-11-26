@@ -2,8 +2,10 @@
 from flask import Flask
 from app.config import db
 from app.routes.parking_routes import parking_bp
+from app.routes.reservation_routes import reservation_bp
 from flasgger import Swagger
 from app.models.parking import Parking, ParkingSpot, ParkingButton
+from app.models.users import User
 
 def create_app():
     app = Flask(__name__)
@@ -14,6 +16,7 @@ def create_app():
 
     # 🔥 SQLAlchemy 앱과 연결 (필수)
     db.init_app(app)
+    
 
     
 
@@ -46,10 +49,12 @@ def create_app():
 
     # DB 테이블 생성
     with app.app_context():
-        db.create_all()
+        
+        db.create_all()  # 새로운 테이블 생성
 
     # Blueprint 등록
     app.register_blueprint(parking_bp)
+    app.register_blueprint(reservation_bp)
 
     # 🔥 반드시 return app 해야 함
     return app

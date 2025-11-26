@@ -7,7 +7,6 @@ parameters:
     required: true
     type: integer
     description: 조회할 주차장 ID
-
 responses:
   200:
     description: 주차장 상세 정보 반환
@@ -41,23 +40,10 @@ responses:
 
             distance_km:
               type: number
-            lat:
-              type: number
-              example: 37.5665
-            lng:
-              type: number
-              example: 126.9780
-
             ev_charge:
               type: boolean
+              description: "주차장에 충전소가 있는지 여부"
               example: true
-            congestion:
-              type: string
-              example: low
-            type:
-              type: string
-              example: parking
-
             layout:
               type: array
               items:
@@ -69,7 +55,9 @@ responses:
                     type: string
                   color:
                     type: string
-
+                  ev_charge:
+                    type: boolean
+                    description: "충전소 여부"
             buttons:
               type: object
               properties:
