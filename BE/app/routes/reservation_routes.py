@@ -53,9 +53,6 @@ def create_reservation():
     spot.status = "occupied"
     spot.color = "red"  # 예약된 공간은 'red'로 표시
 
-    # 주차장 충전소 사용 여부 자동 설정
-    if parking.ev_charge:  # 충전소가 있는 주차장이라면
-        spot.color = "blue"  # 충전소 사용 중 표시
 
 
     db.session.commit()
@@ -94,7 +91,7 @@ def cancel_reservation(id):
     parking = Parking.query.get(reservation.parking_id)
 
     spot.status = "available"
-    spot.color = "green"  # 예약 취소 후 'green'으로 복원
+    spot.color = "blue" if spot.ev_charge else "green"
 
     
 
