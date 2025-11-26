@@ -18,6 +18,8 @@ def create_app():
     db.init_app(app)
     
 
+    
+
     # Swagger 설정
     swagger_config = {
     "headers": [],

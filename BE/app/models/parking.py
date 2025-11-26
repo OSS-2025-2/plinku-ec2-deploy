@@ -30,10 +30,9 @@ class ParkingSpot(db.Model):
     id = db.Column(db.Integer, primary_key=True) # 기본 키
     parking_id = db.Column(db.Integer, db.ForeignKey("parking.id"), nullable=False)# 주차장 ID
     spot_id = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), nullable=False)
-    color = db.Column(db.String(20), nullable=False)
-    ev_charge = db.Column(db.Boolean, default=False)  # 충전소 여부 추가
-
+    status = db.Column(db.String(20), nullable=False)# 자리 상태 (available / occupied 등)
+    color = db.Column(db.String(20), nullable=False)# UI 표시 색상
+    ev_charge = db.Column(db.Boolean, default=False)
 
     # 자리 색상 설정 (주차장 타입에 따라 색 다르게)
     def set_color(self, parking):
