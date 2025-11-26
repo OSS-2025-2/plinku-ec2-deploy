@@ -1,41 +1,46 @@
-# PLINKU_PROJECT/BE/create_dummy_spots.py
+import random
 from app import create_app
 from app.config import db
 from app.models.parking import Parking, ParkingSpot
 
 app = create_app()
 
-# 🔥 자리 개수
 SPOTS_PER_PARKING = 100
+EV_RATIO = 0.1   # 전체 자리 중 10%를 EV 충전소로 만들기
 
 with app.app_context():
-
-    # 전체 주차장 가져오기
     parkings = Parking.query.all()
 
     for p in parkings:
-        print(f"주차장 {p.id} - {p.parking_name} 더미 생성 중...")
+        print(f"{p.parking_name} 더미 생성 중...")
 
-        # 이미 자리 있으면 건너뛰기
         existing = ParkingSpot.query.filter_by(parking_id=p.id).count()
         if existing > 0:
             print(f"이미 {existing}개 존재 → 스킵")
             continue
 
-        # 자리 생성
+        # 🔥 EV 충전소 자리를 랜덤으로 선택
+        ev_spot_count = int(SPOTS_PER_PARKING * EV_RATIO)
+        ev_spots = set(random.sample(range(1, SPOTS_PER_PARKING + 1), ev_spot_count))
+
         for i in range(1, SPOTS_PER_PARKING + 1):
-            status = "available"  # 처음엔 모두 비어있음
-            color = "green" if not p.ev_charge else "blue"
+
+            is_ev = i in ev_spots     # 랜덤 EV 자리
+
+            status = "available"
+            color = "blue" if is_ev else "green"  # available 상태 기준 색상
 
             spot = ParkingSpot(
                 parking_id=p.id,
                 spot_id=i,
                 status=status,
-                color=color
+                color=color,
+                ev_charge=is_ev
             )
             db.session.add(spot)
 
-        db.session.commit()
-        print(f"==> 주차장 {p.id}에 {SPOTS_PER_PARKING}개 생성 완료!")
+        # 🔥 주차장 자체의 ev_charge는 EV 자리가 1개라도 있으면 True
+        p.ev_charge = len(ev_spots) > 0
 
-print("🎉 모든 주차장 더미 데이터 생성 완료!")
+        db.session.commit()
+        print(f"==> {p.parking_name}: EV {len(ev_spots)}개 생성 완료")
