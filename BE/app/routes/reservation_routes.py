@@ -129,18 +129,23 @@ def list_reservations():
     results = []
     for r in paginated.items:
         parking = Parking.query.get(r.parking_id)
+
+        # 🔥 이용 시간 계산
+        duration = r.end_time - r.start_time
+        hours = duration.total_seconds() / 3600
+
         results.append({
             "reservation_id": r.id,
             "user_id": r.user_id,
             "parking_id": parking.id,
             "parking_name": parking.parking_name,
             "address": parking.address,
-            "start_time": r.start_time,
-            "end_time": r.end_time,
+            "start_time": r.start_time.isoformat(),
+            "end_time": r.end_time.isoformat(),
             "status": r.status,
             "type": "parking",
             "price_per_hour": parking.price_per_hour,
-            "total_price": parking.price_per_hour * 1
+            "total_price": parking.price_per_hour * hours
         })
 
     return jsonify({
@@ -151,6 +156,7 @@ def list_reservations():
             "reservations": results
         }
     })
+
 
 @reservation_bp.route("/api/reservations/<int:id>", methods=["GET"])
 @swag_from("../docs/reservation_detail.yml")
