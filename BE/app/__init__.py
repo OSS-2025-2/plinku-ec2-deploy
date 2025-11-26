@@ -4,7 +4,7 @@ from app.config import db
 from app.routes.parking_routes import parking_bp
 from flasgger import Swagger
 from app.models.parking import Parking, ParkingSpot, ParkingButton
-import os
+
 def create_app():
     app = Flask(__name__)
 
@@ -15,10 +15,7 @@ def create_app():
     # 🔥 SQLAlchemy 앱과 연결 (필수)
     db.init_app(app)
 
-    db_path = os.path.join(os.getcwd(), "parking.db")
-    if os.path.exists(db_path):
-        os.remove(db_path)
-        print("🗑️ 기존 parking.db 삭제됨 → 새로 생성 예정")
+    
 
     # Swagger 설정
     swagger_config = {
