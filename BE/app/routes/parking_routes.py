@@ -9,6 +9,7 @@ from flasgger import swag_from
 
 parking_bp = Blueprint("parking", __name__)
 
+
   # <=== YAML 문서 연결
 @parking_bp.route("/api/parkings", methods=["GET"])
 @swag_from("../docs/parking_list.yml")
@@ -65,12 +66,14 @@ def list_parkings():
 
     results = []
     for p in paginated.items:
+        # 실제 주차 스팟 테이블(ParkingSpot) 기준으로 available 계산
+        available_count = sum(1 for s in p.spots if s.status == "available")
         results.append({
             "id": p.id,
             "parking_name": p.parking_name,
             "address": p.address,
             "price_per_hour": p.price_per_hour,
-            "available_spots": p.available_spots,
+            "available_spots": available_count,
             "distance_km": p.distance_km,
             "ev_charge": p.ev_charge,
             "congestion": p.congestion,
