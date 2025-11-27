@@ -103,13 +103,16 @@ def get_parking(id):
     spots = []
     for s in p.spots:
         spots.append({
-            "spot_id": s.spot_id,
+            "id": s.id,               # 🔥 반드시 넣어야 함 (중복되지 않는 PK)
+            "spot_id": s.spot_id,     # UI 표기용 번호
             "status": s.status,
-            "color": s.color
+            "color": s.color,
+            "ev_charge": s.ev_charge
         })
+
     available_count = sum(1 for s in p.spots if s.status == "available")
     occupied_count = sum(1 for s in p.spots if s.status == "occupied")
-    
+
     return jsonify({
         "status": "success",
         "data": {
@@ -121,15 +124,13 @@ def get_parking(id):
             "available_spots": available_count,
             "occupied_spots": occupied_count,
             "distance_km": p.distance_km,
-            #FE에쪽에서 Google Maps 네비게이션 URL
-            #const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${parkingLat},${parkingLng}`;
-            # window.location.href = url;
-            "lat": p.lat, 
+            "lat": p.lat,
             "lng": p.lng,
-            "layout": spots,#주차장에 있는 전체 주차 구역(자리) 목록을 프론트에게 전달
-            "buttons": {       #상세 페이지에서 예약하기 버튼,경로 안내 버튼을 보여줄지,UI 표시 여부를 제어하기 위한 값.
+            "layout": spots,
+            "buttons": {
                 "reserve": True,
                 "route": True
             }
         }
     })
+

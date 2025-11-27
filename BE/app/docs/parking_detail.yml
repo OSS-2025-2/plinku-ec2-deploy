@@ -6,7 +6,7 @@ parameters:
     in: path
     required: true
     type: integer
-    description: 조회할 주차장 ID
+    description: 조회할 주차장 ID (parking.id)
 
 responses:
   200:
@@ -22,25 +22,37 @@ responses:
           properties:
             parking_id:
               type: integer
+              description: 주차장 고유 ID (parking.id)
+              example: 1
+
             parking_name:
               type: string
+              example: 서울역 공영주차장
+
             address:
               type: string
+              example: 서울특별시 중구 세종대로 1
+
             price_per_hour:
               type: integer
+              example: 1500
+
             total_spots:
               type: integer
+              example: 20
 
-            # 🔥 자리 현황 추가
             available_spots:
               type: integer
               example: 12
+
             occupied_spots:
               type: integer
               example: 8
 
             distance_km:
               type: number
+              example: 1.2
+
             lat:
               type: number
               example: 37.5665
@@ -48,27 +60,31 @@ responses:
               type: number
               example: 126.9780
 
-            ev_charge:
-              type: boolean
-              example: true
-            congestion:
-              type: string
-              example: low
-            type:
-              type: string
-              example: parking
-
             layout:
               type: array
+              description: |
+                주차장 칸 배열.
+                - **id**: ParkingSpot PK (예약 요청 시 반드시 이 값을 사용)
+                - **spot_id**: UI 표시용 자리 번호 (각 주차장 내부에서만 의미)
+                - **status**: available / occupied
+                - **color**: UI 색상 값
               items:
                 type: object
                 properties:
+                  id:
+                    type: integer
+                    description: ParkingSpot PK (예약 시 사용)
+                    example: 101
                   spot_id:
                     type: integer
+                    description: UI용 자리 번호 (다른 주차장과 중복 가능)
+                    example: 1
                   status:
                     type: string
+                    example: available
                   color:
                     type: string
+                    example: green
 
             buttons:
               type: object
