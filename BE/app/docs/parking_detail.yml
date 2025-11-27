@@ -1,6 +1,8 @@
 tags:
   - Parking
+
 summary: 주차장 상세 조회
+
 parameters:
   - name: id
     in: path
@@ -22,7 +24,7 @@ responses:
           properties:
             parking_id:
               type: integer
-              description: 주차장 고유 ID (parking.id)
+              description: 주차장 고유 ID
               example: 1
 
             parking_name:
@@ -56,6 +58,7 @@ responses:
             lat:
               type: number
               example: 37.5665
+
             lng:
               type: number
               example: 126.9780
@@ -63,21 +66,22 @@ responses:
             layout:
               type: array
               description: |
-                주차장 칸 배열.
-                - **id**: ParkingSpot PK (예약 요청 시 반드시 이 값을 사용)
-                - **spot_id**: UI 표시용 자리 번호 (각 주차장 내부에서만 의미)
+                주차장 칸 배열 정보.
+                - **id**: ParkingSpot PK (예약 시 반드시 필요)
+                - **spot_id**: UI 표시용 자리 번호
                 - **status**: available / occupied
                 - **color**: UI 색상 값
+                - **ev_charge**: EV 충전 가능 여부
               items:
                 type: object
                 properties:
                   id:
                     type: integer
-                    description: ParkingSpot PK (예약 시 사용)
+                    description: ParkingSpot PK
                     example: 101
                   spot_id:
                     type: integer
-                    description: UI용 자리 번호 (다른 주차장과 중복 가능)
+                    description: 주차장 내부 자리 번호
                     example: 1
                   status:
                     type: string
@@ -85,6 +89,9 @@ responses:
                   color:
                     type: string
                     example: green
+                  ev_charge:
+                    type: boolean
+                    example: true
 
             buttons:
               type: object
