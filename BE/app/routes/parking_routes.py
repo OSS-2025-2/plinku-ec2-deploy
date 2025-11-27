@@ -50,14 +50,16 @@ def list_parkings():
         query = query.filter(~Parking.spots.any(ParkingSpot.ev_charge == True))
 
     # 정렬
+    # ---------------------
+    # 정렬 기준 설정 (sort와 order 파라미터 활용)
     sort_column = getattr(Parking, sort, None)
     if not sort_column:
         return jsonify({"error": f"Invalid sort column: {sort}"}), 400
 
     if order == "desc":
-        query = query.order_by(sort_column.desc())
+        query = query.order_by(sort_column.desc()) # 내림차순 정렬
     else:
-        query = query.order_by(sort_column.asc())
+        query = query.order_by(sort_column.asc())# 오름차순 정렬
 
     paginated = query.paginate(page=page, per_page=size, error_out=False)
 
