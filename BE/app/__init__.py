@@ -6,6 +6,9 @@ from app.routes.auth_routes import auth_bp
 from flasgger import Swagger
 from app.models.parking import Parking, ParkingSpot, ParkingButton
 from app.models.users import User 
+from app.routes.community_routes import community_bp
+from app.routes.support_routes import support_bp
+from app.models.community import Post, Vote, Report, Block, Contact
 
 def create_app():
     app = Flask(__name__)
@@ -16,7 +19,6 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///parking.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # 🔥 SQLAlchemy 앱과 연결 (필수)
     db.init_app(app)
 
     # Swagger 설정
@@ -53,6 +55,7 @@ def create_app():
     # Blueprint 등록
     app.register_blueprint(parking_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(community_bp)
+    app.register_blueprint(support_bp)
 
-    # 🔥 반드시 return app 해야 함
     return app
