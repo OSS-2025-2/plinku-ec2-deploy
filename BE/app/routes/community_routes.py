@@ -1,18 +1,17 @@
-# app/routes/community_routes.py
-
 from flask import Blueprint, request, jsonify, g
 from app.config import db
 from app.models.community import Post, Vote, Report, Block
 from app.routes.auth_utils import login_required
+from flasgger import swag_from
+
 
 community_bp = Blueprint("community", __name__, url_prefix="/api/community")
 
 
-# ----------------------------
 # 게시글 작성 (로그인 필요)
 # POST /api/community/post
-# ----------------------------
 @community_bp.route("/post", methods=["POST"])
+@swag_from("../docs/community_create_post.yml")
 @login_required
 def create_post():
     data = request.get_json() or {}
@@ -37,11 +36,10 @@ def create_post():
     }), 201
 
 
-# ----------------------------
 # 게시글 목록 조회 (로그인 필요)
 # GET /api/community/posts
-# ----------------------------
 @community_bp.route("/posts", methods=["GET"])
+@swag_from("../docs/community_list_posts.yml")
 @login_required
 def list_posts():
     posts = Post.query.order_by(Post.created_at.desc()).all()
@@ -64,11 +62,10 @@ def list_posts():
     return jsonify(results), 200
 
 
-# ----------------------------
 # 게시글 상세 조회
 # GET /api/community/post/<id>
-# ----------------------------
 @community_bp.route("/post/<int:post_id>", methods=["GET"])
+@swag_from("../docs/community_get_posts.yml")
 @login_required
 def get_post(post_id):
     post = Post.query.get(post_id)
@@ -89,12 +86,11 @@ def get_post(post_id):
     }), 200
 
 
-# ----------------------------
 # 추천 / 비추천
 # POST /api/community/post/<id>/vote
 # body: { "value": 1 } or { "value": -1 }
-# ----------------------------
 @community_bp.route("/post/<int:post_id>/vote", methods=["POST"])
+@swag_from("../docs/community_vote.yml")
 @login_required
 def vote_post(post_id):
     data = request.get_json() or {}
@@ -120,14 +116,13 @@ def vote_post(post_id):
     return jsonify({"message": "투표가 반영되었습니다."}), 200
 
 
-# ----------------------------
 # 신고하기
 # POST /api/community/post/<id>/report
 # body: { "reason": "..." }
-# ----------------------------
 from app.models.community import Report
 
 @community_bp.route("/post/<int:post_id>/report", methods=["POST"])
+@swag_from("../docs/community_report.yml")
 @login_required
 def report_post(post_id):
     data = request.get_json() or {}
@@ -148,14 +143,13 @@ def report_post(post_id):
     return jsonify({"message": "신고가 접수되었습니다."}), 201
 
 
-# ----------------------------
 # 사용자 차단
 # POST /api/community/block
 # body: { "blocked_user_id": 3 }
-# ----------------------------
 from app.models.community import Block
 
 @community_bp.route("/block", methods=["POST"])
+@swag_from("../docs/community_block.yml")
 @login_required
 def block_user():
     data = request.get_json() or {}

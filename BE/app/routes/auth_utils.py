@@ -1,6 +1,8 @@
 import jwt
 from functools import wraps
 from flask import request, jsonify, current_app, g
+from flasgger import swag_from
+
 
 def login_required(f):
     @wraps(f)

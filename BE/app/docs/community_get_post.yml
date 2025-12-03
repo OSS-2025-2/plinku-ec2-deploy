@@ -1,0 +1,18 @@
+tags:
+  - Community
+summary: 게시글 상세 조회
+description: 특정 게시글의 상세 내용을 조회합니다.
+parameters:
+  - name: Authorization
+    in: header
+    required: true
+    type: string
+  - name: post_id
+    in: path
+    required: true
+    type: integer
+responses:
+  200:
+    description: 성공
+  404:
+    description: 게시글 없음

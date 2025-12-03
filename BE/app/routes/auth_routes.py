@@ -28,6 +28,7 @@ def create_token(user_id):
 
 # 회원가입
 @auth_bp.route("/signup", methods=["POST"])
+@swag_from("../docs/auth_signup.yml")
 def signup():
     data = request.get_json()
 
@@ -60,6 +61,7 @@ def signup():
 
 # 로그인
 @auth_bp.route("/login", methods=["POST"])
+@swag_from("../docs/auth_login.yml")
 def login():
     data = request.get_json()
 
@@ -82,6 +84,7 @@ def login():
 
 # 회원 탈퇴
 @auth_bp.route("/delete", methods=["DELETE"])
+@swag_from("../docs/auth_delete.yml")
 def delete_user():
     data = request.get_json()
     user_id = data.get("user_id")
