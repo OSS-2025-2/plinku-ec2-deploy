@@ -20,6 +20,9 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
+    
+
+    
 
     # Swagger 설정
     swagger_config = {
@@ -50,7 +53,8 @@ def create_app():
 
     # DB 테이블 생성
     with app.app_context():
-        db.create_all()
+        
+        db.create_all()  # 새로운 테이블 생성
 
     # Blueprint 등록
     app.register_blueprint(parking_bp)
