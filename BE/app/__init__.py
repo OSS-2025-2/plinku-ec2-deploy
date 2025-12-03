@@ -2,6 +2,7 @@
 from flask import Flask
 from app.config import db
 from app.routes.parking_routes import parking_bp
+from app.routes.reservation_routes import reservation_bp
 from app.routes.auth_routes import auth_bp
 from flasgger import Swagger
 from app.models.parking import Parking, ParkingSpot, ParkingButton
@@ -61,5 +62,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(community_bp)
     app.register_blueprint(support_bp)
+    app.register_blueprint(reservation_bp)
+
 
     return app
