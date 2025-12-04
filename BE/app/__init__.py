@@ -9,6 +9,7 @@ from app.models.parking import Parking, ParkingSpot, ParkingButton
 from app.models.users import User 
 from app.routes.community_routes import community_bp
 from app.routes.support_routes import support_bp
+from app.routes.favorites_routes import favorites_bp
 from app.models.community import Post, Vote, Report, Block, Contact
 
 def create_app():
@@ -63,6 +64,7 @@ def create_app():
     app.register_blueprint(community_bp)
     app.register_blueprint(support_bp)
     app.register_blueprint(reservation_bp)
+    app.register_blueprint(favorites_bp)
 
 
     return app
