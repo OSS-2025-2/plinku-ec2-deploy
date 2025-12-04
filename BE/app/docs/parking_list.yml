@@ -7,26 +7,49 @@ parameters:
     type: integer
     required: false
     description: 페이지 번호
+
   - name: size
     in: query
     type: integer
     required: false
     description: 한 페이지당 데이터 개수
+
+  - name: keyword
+    in: query
+    type: string
+    required: false
+    description: 검색어 (주차장명 또는 주소)
+
   - name: ev_charger
     in: query
     type: string
     required: false
     description: 전기차 충전소 여부 (true/false)
+
   - name: sort
     in: query
     type: string
     required: false
-    description: 정렬 기준 컬럼명 
+    description: 정렬 기준 컬럼명 (예: distance_km, price_per_hour)
+
   - name: order
     in: query
     type: string
     required: false
     description: 정렬 방향 (asc, desc)
+
+  - name: congestion
+    in: query
+    type: string
+    required: false
+    description: 혼잡도 필터 (low, medium, high)
+
+  - name: type
+    in: query
+    type: string
+    required: false
+    description: 주차장/충전소 타입 필터 (parking, ev)
+
 responses:
   200:
     description: 성공적으로 주차장 목록 반환
@@ -41,6 +64,8 @@ responses:
         size:
           type: integer
         total:
+          type: integer
+        pages:
           type: integer
         results:
           type: array
@@ -61,5 +86,11 @@ responses:
                 type: number
               ev_charge:
                 type: boolean
-                description: "주차장에 충전소가 있는지 여부"
+                description: 주차장에 충전소가 있는지 여부
                 example: true
+              congestion:
+                type: string
+                example: low
+              type:
+                type: string
+                example: parking
