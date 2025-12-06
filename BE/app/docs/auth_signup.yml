@@ -1,0 +1,29 @@
+tags:
+  - Auth
+summary: 사용자 회원가입
+description: 새 사용자 계정을 생성합니다.
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      properties:
+        email:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+responses:
+  201:
+    description: 회원가입 성공
+    schema:
+      properties:
+        message:
+          type: string
+        user_id:
+          type: integer
+  400:
+    description: 필드 누락
+  409:
+    description: 이미 존재하는 이메일

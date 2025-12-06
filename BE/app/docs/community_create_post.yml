@@ -1,0 +1,30 @@
+tags:
+  - Community
+summary: 게시글 작성
+description: 로그인한 사용자가 새 게시글을 작성합니다.
+parameters:
+  - name: Authorization
+    in: header
+    required: true
+    type: string
+    description: "Bearer {JWT}"
+  - in: body
+    name: body
+    required: true
+    schema:
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+responses:
+  201:
+    description: 게시글 생성 성공
+    schema:
+      properties:
+        message:
+          type: string
+        post_id:
+          type: integer
+  400:
+    description: 필드 오류

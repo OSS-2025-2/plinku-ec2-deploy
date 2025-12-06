@@ -1,0 +1,21 @@
+tags:
+  - Support
+summary: 문의 접수
+description: 로그인한 사용자가 관리자에게 문의 메시지를 보냅니다.
+parameters:
+  - name: Authorization
+    in: header
+    required: true
+    type: string
+  - in: body
+    name: body
+    required: true
+    schema:
+      properties:
+        message:
+          type: string
+responses:
+  201:
+    description: 문의 접수됨
+  400:
+    description: 필드 오류
