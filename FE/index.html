@@ -34,7 +34,7 @@
       const { useState, useEffect, createContext, useContext } = React;
 
       // API 기본 URL
-      const API_BASE = "http://18.191.185.124:8000";
+      const API_BASE = "http://localhost:5000";
 
       // API 유틸리티 함수
       const apiCall = async (endpoint, options = {}) => {
@@ -81,7 +81,7 @@
 
         const logout = async () => {
           try {
-            await apiCall("/logout", { method: "POST" });
+            await apiCall("/api/logout", { method: "POST" });
           } catch (e) {
             console.error("Logout error:", e);
           }
@@ -115,15 +115,18 @@
               <button onClick={() => onNav("market")}>마켓</button>
               <button onClick={() => onNav("community")}>커뮤니티</button>
               {user ? (
-                <button
-                  className="cta"
-                  onClick={() => {
-                    logout();
-                    onNav("home");
-                  }}
-                >
-                  로그아웃
-                </button>
+                <>
+                  <button onClick={() => onNav("mypage")}>마이페이지</button>
+                  <button
+                    className="cta"
+                    onClick={() => {
+                      logout();
+                      onNav("home");
+                    }}
+                  >
+                    로그아웃
+                  </button>
+                </>
               ) : (
                 <button className="cta" onClick={() => onNav("login")}>
                   로그인
@@ -157,7 +160,7 @@
         const loadFavorites = async () => {
           try {
             setLoading(true);
-            const data = await apiCall("/favorites");
+            const data = await apiCall("/api/favorites");
             setFavorites(data.favorites || []);
           } catch (error) {
             console.error("Failed to load favorites:", error);
@@ -170,7 +173,7 @@
         const removeFavorite = async (id, e) => {
           e.stopPropagation();
           try {
-            await apiCall(`/favorites/${id}`, { method: "DELETE" });
+            await apiCall(`/api/favorites/${id}`, { method: "DELETE" });
             setFavorites((prev) => prev.filter((f) => f.id !== id));
           } catch (error) {
             console.error("즐겨찾기 삭제 실패:", error);
@@ -312,7 +315,7 @@
           try {
             setLoading(true);
             const data = await apiCall(
-              `/parking-spots?page=${currentPage}&per_page=${perPage}`
+              `/api/parking-spots?page=${currentPage}&per_page=${perPage}`
             );
             setSpots(data.spots || []);
             setTotalCount(data.count || 0);
@@ -326,7 +329,7 @@
 
         const loadFavorites = async () => {
           try {
-            const data = await apiCall("/favorites");
+            const data = await apiCall("/api/favorites");
             const favoriteIds = new Set(
               (data.favorites || []).map((f) => f.id)
             );
@@ -345,14 +348,14 @@
 
           try {
             if (favorites.has(id)) {
-              await apiCall(`/favorites/${id}`, { method: "DELETE" });
+              await apiCall(`/api/favorites/${id}`, { method: "DELETE" });
               setFavorites((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(id);
                 return newSet;
               });
             } else {
-              await apiCall(`/favorites/${id}`, {
+              await apiCall(`/api/favorites/${id}`, {
                 method: "POST",
                 body: JSON.stringify({ place_type: placeType }),
               });
@@ -472,7 +475,7 @@
         const loadSpot = async (id) => {
           try {
             setLoading(true);
-            const spotData = await apiCall(`/parking-spots/${id}`);
+            const spotData = await apiCall(`/api/parking-spots/${id}`);
             setSpot(spotData);
           } catch (error) {
             console.error("Failed to load spot:", error);
@@ -594,8 +597,8 @@
           try {
             setLoading(true);
             const endpoint = isEV
-              ? `/ev-stations/${data.id}`
-              : `/parking-spots/${data.id}`;
+              ? `/api/ev-stations/${data.id}`
+              : `/api/parking-spots/${data.id}`;
             const detail = await apiCall(endpoint);
             setSlots(detail.slots || detail.chargers || []);
             setRows(detail.rows || 3);
@@ -636,7 +639,7 @@
 
           try {
             setError("");
-            const reservation = await apiCall("/reservations", {
+            const reservation = await apiCall("/api/reservations", {
               method: "POST",
               body: JSON.stringify({
                 place_id: data.id,
@@ -911,7 +914,7 @@
         const loadStation = async (id) => {
           try {
             setLoading(true);
-            const stationData = await apiCall(`/ev-stations/${id}`);
+            const stationData = await apiCall(`/api/ev-stations/${id}`);
             setStation(stationData);
           } catch (error) {
             console.error("Failed to load station:", error);
@@ -1018,7 +1021,7 @@
           try {
             setLoading(true);
             const data = await apiCall(
-              `/ev-stations?page=${currentPage}&per_page=${perPage}`
+              `/api/ev-stations?page=${currentPage}&per_page=${perPage}`
             );
             setStations(data.stations || []);
             setTotalCount(data.count || 0);
@@ -1032,7 +1035,7 @@
 
         const loadFavorites = async () => {
           try {
-            const data = await apiCall("/favorites");
+            const data = await apiCall("/api/favorites");
             const favoriteIds = new Set(
               (data.favorites || []).map((f) => f.id)
             );
@@ -1051,14 +1054,14 @@
 
           try {
             if (favorites.has(id)) {
-              await apiCall(`/favorites/${id}`, { method: "DELETE" });
+              await apiCall(`/api/favorites/${id}`, { method: "DELETE" });
               setFavorites((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(id);
                 return newSet;
               });
             } else {
-              await apiCall(`/favorites/${id}`, {
+              await apiCall(`/api/favorites/${id}`, {
                 method: "POST",
                 body: JSON.stringify({ place_type: placeType }),
               });
@@ -1249,7 +1252,7 @@
           try {
             setLoading(true);
             setError("");
-            const endpoint = type === "ev" ? "/ev-stations" : "/parking-spots";
+            const endpoint = type === "ev" ? "/api/ev-stations" : "/api/parking-spots";
             const payload = {
               name,
               address: addr,
@@ -1513,8 +1516,8 @@
           try {
             setLoading(true);
             const [parkingData, evData] = await Promise.all([
-              apiCall("/my-parking-spots"),
-              apiCall("/my-ev-stations"),
+              apiCall("/api/my-parking-spots"),
+              apiCall("/api/my-ev-stations"),
             ]);
             setParkingSpots(parkingData.spots || []);
             setEvStations(evData.stations || []);
@@ -1604,8 +1607,8 @@
           try {
             const endpoint =
               deleteConfirm.type === "ev"
-                ? `/ev-stations/${deleteConfirm.id}`
-                : `/parking-spots/${deleteConfirm.id}`;
+                ? `/api/ev-stations/${deleteConfirm.id}`
+                : `/api/parking-spots/${deleteConfirm.id}`;
             await apiCall(endpoint, { method: "DELETE" });
             await loadMyPlaces();
             setDeleteConfirm(null);
@@ -1831,7 +1834,7 @@
           try {
             setLoading(true);
             const data = await apiCall(
-              `/posts?page=${currentPage}&per_page=${perPage}`
+              `/api/posts?page=${currentPage}&per_page=${perPage}`
             );
             setPosts(data.posts || []);
             setTotalCount(data.count || 0);
@@ -1845,7 +1848,7 @@
 
         const loadPopularPosts = async () => {
           try {
-            const data = await apiCall("/posts/popular?limit=5");
+            const data = await apiCall("/api/posts/popular?limit=5");
             setPopularPosts(data.posts || []);
           } catch (error) {
             console.error("Failed to load popular posts:", error);
@@ -1861,7 +1864,7 @@
           }
 
           try {
-            const result = await apiCall(`/posts/${postId}/like`, {
+            const result = await apiCall(`/api/posts/${postId}/like`, {
               method: "POST",
             });
             // 좋아요 상태 업데이트
@@ -2047,7 +2050,7 @@
           try {
             setLoading(true);
             setError("");
-            const result = await apiCall("/posts", {
+            const result = await apiCall("/api/posts", {
               method: "POST",
               body: JSON.stringify({ title, content }),
             });
@@ -2140,7 +2143,7 @@
         const loadPost = async (id) => {
           try {
             setLoading(true);
-            const postData = await apiCall(`/posts/${id}`);
+            const postData = await apiCall(`/api/posts/${id}`);
             setPost(postData);
             setComments(postData.comments || []);
           } catch (error) {
@@ -2199,7 +2202,7 @@
 
           try {
             setError("");
-            const comment = await apiCall(`/posts/${post.id}/comments`, {
+            const comment = await apiCall(`/api/posts/${post.id}/comments`, {
               method: "POST",
               body: JSON.stringify({ content: newComment }),
             });
@@ -2327,6 +2330,343 @@
         );
       };
 
+      const MyPage = ({ onNav }) => {
+        const { user } = useAuth();
+        const [reservations, setReservations] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [cancelConfirm, setCancelConfirm] = useState(null);
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          if (!user) {
+            onNav("login");
+          } else {
+            loadMyReservations();
+          }
+        }, [user]);
+
+        const loadMyReservations = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall("/api/my-reservations");
+            setReservations(data.reservations || []);
+          } catch (error) {
+            console.error("Failed to load reservations:", error);
+            setReservations([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleCancel = async (id, placeName) => {
+          setCancelConfirm({ id, placeName });
+        };
+
+        const confirmCancel = async () => {
+          if (!cancelConfirm) return;
+          try {
+            await apiCall(`/api/reservations/${cancelConfirm.id}`, {
+              method: "DELETE",
+            });
+            await loadMyReservations();
+            setCancelConfirm(null);
+          } catch (error) {
+            setError("예약 취소 실패: " + error.message);
+            setCancelConfirm(null);
+          }
+        };
+
+        const formatDateTime = (dateTimeStr) => {
+          if (!dateTimeStr) return "";
+          try {
+            const date = new Date(dateTimeStr);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+          } catch (e) {
+            return dateTimeStr;
+          }
+        };
+
+        if (!user) return null;
+
+        return (
+          <div className="page mypage">
+            <h2>마이페이지</h2>
+            {error && (
+              <div className="error-message">
+                <span className="material-icons">error</span>
+                {error}
+                <button
+                  onClick={() => setError("")}
+                  className="error-close"
+                  title="닫기"
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            )}
+            {cancelConfirm && (
+              <div className="confirm-dialog-overlay">
+                <div className="confirm-dialog">
+                  <h3>예약 취소 확인</h3>
+                  <p>
+                    {cancelConfirm.placeName}의 예약을 취소하시겠습니까?
+                  </p>
+                  <div className="confirm-actions">
+                    <button onClick={() => setCancelConfirm(null)}>취소</button>
+                    <button className="primary" onClick={confirmCancel}>
+                      예약 취소
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 프로필 정보 섹션 */}
+            <div className="info-card" style={{ marginBottom: "24px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                  marginBottom: "16px",
+                }}
+              >
+                <div
+                  className="logo-circle"
+                  style={{ width: "64px", height: "64px", fontSize: "32px" }}
+                >
+                  {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "24px", color: "#fff" }}>
+                    {user.name || user.email}
+                  </h3>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 빠른 링크 섹션 */}
+            <div
+              className="main-tabs"
+              style={{ marginBottom: "32px", gridTemplateColumns: "repeat(3, 1fr)" }}
+            >
+              <div
+                className="tab-card"
+                onClick={() => onNav("managePosts")}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="tab-icon">
+                  <span className="material-icons">article</span>
+                </div>
+                <h3>내 글 관리</h3>
+                <p>작성한 게시글을 관리하세요</p>
+              </div>
+              <div
+                className="tab-card"
+                onClick={() => onNav("manage")}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="tab-icon">
+                  <span className="material-icons">settings</span>
+                </div>
+                <h3>장소 관리</h3>
+                <p>등록한 주차장/충전소를 관리하세요</p>
+              </div>
+              <div
+                className="tab-card"
+                onClick={() => onNav("favorites")}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="tab-icon">
+                  <span className="material-icons">star</span>
+                </div>
+                <h3>즐겨찾기</h3>
+                <p>저장한 장소를 확인하세요</p>
+              </div>
+            </div>
+
+            {/* 내 예약 현황 섹션 */}
+            <div style={{ marginTop: "32px" }}>
+              <h3
+                className="section-title"
+                style={{ marginBottom: "20px", fontSize: "22px" }}
+              >
+                내 예약 현황
+              </h3>
+              {loading ? (
+                <p style={{ color: "var(--muted)", textAlign: "center" }}>
+                  로딩 중...
+                </p>
+              ) : reservations.length === 0 ? (
+                <div
+                  className="info-card"
+                  style={{
+                    textAlign: "center",
+                    padding: "40px",
+                    color: "var(--muted)",
+                  }}
+                >
+                  <span
+                    className="material-icons"
+                    style={{ fontSize: "64px", marginBottom: "16px" }}
+                  >
+                    event_busy
+                  </span>
+                  <p>예약 내역이 없습니다.</p>
+                </div>
+              ) : (
+                <div className="list">
+                  {reservations.map((reservation) => (
+                    <div
+                      className="spot-card"
+                      key={reservation.id}
+                      style={{
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            <span
+                              className="material-icons"
+                              style={{
+                                fontSize: "20px",
+                                color: "var(--accent)",
+                              }}
+                            >
+                              {reservation.place_type === "ev"
+                                ? "ev_station"
+                                : "local_parking"}
+                            </span>
+                            <h4
+                              style={{
+                                margin: 0,
+                                fontSize: "18px",
+                                fontWeight: 600,
+                                color: "#fff",
+                              }}
+                            >
+                              {reservation.place_name || "알 수 없음"}
+                            </h4>
+                          </div>
+                          {reservation.place_address && (
+                            <p
+                              style={{
+                                margin: "4px 0",
+                                color: "var(--muted)",
+                                fontSize: "14px",
+                              }}
+                            >
+                              {reservation.place_address}
+                            </p>
+                          )}
+                          <div
+                            style={{
+                              marginTop: "12px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "8px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                color: "var(--muted)",
+                                fontSize: "14px",
+                              }}
+                            >
+                              <span className="material-icons" style={{ fontSize: "18px" }}>
+                                schedule
+                              </span>
+                              <span>
+                                시작: {formatDateTime(reservation.start_time)}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                color: "var(--muted)",
+                                fontSize: "14px",
+                              }}
+                            >
+                              <span className="material-icons" style={{ fontSize: "18px" }}>
+                                event
+                              </span>
+                              <span>
+                                종료: {formatDateTime(reservation.end_time)}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                color: "var(--muted)",
+                                fontSize: "14px",
+                              }}
+                            >
+                              <span className="material-icons" style={{ fontSize: "18px" }}>
+                                pin_drop
+                              </span>
+                              <span>슬롯: {reservation.slot}번</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="spot-actions">
+                          <button
+                            onClick={() =>
+                              handleCancel(
+                                reservation.id,
+                                reservation.place_name
+                              )
+                            }
+                            style={{
+                              background: "var(--glass)",
+                              border: "1px solid rgba(255, 255, 255, 0.1)",
+                              color: "#fff",
+                            }}
+                          >
+                            예약 취소
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      };
+
       const ManagePosts = ({ onNav }) => {
         const { user } = useAuth();
         const [posts, setPosts] = useState([]);
@@ -2345,7 +2685,7 @@
         const loadMyPosts = async () => {
           try {
             setLoading(true);
-            const data = await apiCall("/my-posts");
+            const data = await apiCall("/api/my-posts");
             setPosts(data.posts || []);
           } catch (error) {
             console.error("Failed to load posts:", error);
@@ -2442,7 +2782,7 @@
           try {
             setLoading(true);
             setError("");
-            const data = await apiCall("/login", {
+            const data = await apiCall("/api/login", {
               method: "POST",
               body: JSON.stringify({ email, password: pw }),
             });
@@ -2528,7 +2868,7 @@
           try {
             setLoading(true);
             setError("");
-            await apiCall("/signup", {
+            await apiCall("/api/signup", {
               method: "POST",
               body: JSON.stringify({ email, password: pw }),
             });
@@ -2681,7 +3021,7 @@
         const loadFavorites = async () => {
           try {
             setLoading(true);
-            const data = await apiCall("/favorites");
+            const data = await apiCall("/api/favorites");
             setFavorites(data.favorites || []);
           } catch (error) {
             console.error("Failed to load favorites:", error);
@@ -2694,7 +3034,7 @@
         const removeFavorite = async (id, e) => {
           e.stopPropagation();
           try {
-            await apiCall(`/favorites/${id}`, { method: "DELETE" });
+            await apiCall(`/api/favorites/${id}`, { method: "DELETE" });
             setFavorites((prev) => prev.filter((f) => f.id !== id));
           } catch (error) {
             setError("즐겨찾기 삭제 실패: " + error.message);
@@ -2845,6 +3185,7 @@
                   <SignupSuccess onNav={nav} />
                 )}
                 {route.name === "favorites" && <FavoritesPage onNav={nav} />}
+                {route.name === "mypage" && <MyPage onNav={nav} />}
               </div>
               <footer className="app-footer">
                 © {new Date().getFullYear()} PlinkU · 2025-2 OSS 프로젝트
