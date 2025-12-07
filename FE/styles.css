@@ -1560,22 +1560,7 @@ label {
   margin-bottom: 20px;
   color: #fff;
 }
-.time-selection {
-  margin: 24px 0;
-  display: flex;
-  gap: 16px;
-}
-.time-selection label {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.time-selection label span {
-  font-weight: 600;
-  color: #fff;
-  font-size: 14px;
-}
+/* time-selection은 아래에서 재정의됨 */
 .time-input-wrapper {
   position: relative;
   display: flex;
@@ -1635,6 +1620,18 @@ label {
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .parking-grid-select {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+@media (max-width: 400px) {
+  .parking-grid-select {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
 }
 .slot-select {
   height: 60px;
@@ -1798,6 +1795,27 @@ label {
     flex: 1;
     min-width: 80px;
   }
+  /* 마이페이지 예약 현황 반응형 */
+  .mypage .spot-card {
+    flex-direction: column !important;
+  }
+  .mypage .spot-card > div:first-child {
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .mypage .spot-card > div:first-child > div:first-child {
+    width: 100% !important;
+  }
+  .mypage .spot-actions {
+    width: 100% !important;
+    margin-top: 8px !important;
+    justify-content: stretch !important;
+  }
+  .mypage .spot-actions button {
+    width: 100% !important;
+    flex: 1 !important;
+  }
   .main-tabs {
     grid-template-columns: 1fr;
   }
@@ -1832,6 +1850,32 @@ label {
     width: 100%;
     justify-content: center;
   }
+  .time-selection {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .time-input-group {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .parking-grid-select {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .reserve-content {
+    padding: 0 8px;
+  }
+  .slot-select {
+    height: 50px;
+    font-size: 12px;
+  }
+  .reserve .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .reserve .actions button {
+    width: 100%;
+  }
 }
 
 @media (max-width: 400px) {
@@ -1843,6 +1887,40 @@ label {
   }
   .vehicle-icon {
     font-size: 24px;
+  }
+  .parking-grid-select {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .slot-select {
+    height: 45px;
+    font-size: 11px;
+  }
+  .slot-select .slot-number {
+    font-size: 11px;
+  }
+  .time-input-wrapper {
+    padding: 8px;
+  }
+  .time-selection input[type="date"],
+  .time-selection input[type="time"] {
+    padding: 10px 10px 10px 40px;
+    font-size: 13px;
+  }
+  /* 마이페이지 예약 현황 추가 반응형 */
+  .mypage .spot-card > div:first-child > div:first-child {
+    width: 100% !important;
+  }
+  .mypage .spot-card h4 {
+    font-size: 16px !important;
+  }
+  .mypage .spot-card > div:first-child > div:last-child {
+    width: 100% !important;
+    margin-top: 12px !important;
+  }
+  .mypage .spot-card > div:first-child > div:last-child button {
+    font-size: 13px;
+    padding: 10px 16px;
   }
 }
 
@@ -2151,6 +2229,12 @@ textarea {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+@media (max-width: 600px) {
+  .time-selection {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
 .time-group {
   display: flex;
   flex-direction: column;
@@ -2173,6 +2257,12 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+@media (max-width: 600px) {
+  .time-input-group {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 .time-input-wrapper {
   position: relative;
