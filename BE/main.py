@@ -15,20 +15,31 @@ CORS(app)  # 프론트엔드와 통신을 위한 CORS 설정
 # ============================================================================
 # 자료구조 활용: Dictionary, Set 기반 인메모리 데이터 저장소
 # ============================================================================
+# 
+# [Dictionary 기반 빠른 조회(O(1))]
+# 해시 기반 조회(O(1)) — ParkingSpot, User 등 빠른 조회 구조 설계에 유리.
+# dict comprehension — JSON 변환 시 빠르고 간결하게 response 구성 가능.
+# 딕셔너리(dict): key → value 매핑 → 주차장 한 개의 상세 정보(이름, 가격, 좌표 등)를 한 번에 표현.
+# 가변 객체(mutable object): 딕셔너리처럼 내부 상태 변경 가능 → 함수 기본값으로 쓰면 안 되는 타입.
 
 # Dictionary 기반 조회(O(1)) - ParkingSpot, User 등 빠른 조회 구조
-parking_spots: Dict[int, Dict] = {}  # {id: spot_data}
-ev_stations: Dict[int, Dict] = {}  # {id: station_data}
-users: Dict[int, Dict] = {}  # {id: user_data}
-reservations: Dict[int, Dict] = {}  # {id: reservation_data}
-posts: Dict[int, Dict] = {}  # {id: post_data}
-comments: Dict[int, Dict] = {}  # {id: comment_data}
+parking_spots: Dict[int, Dict] = {}  # {id: spot_data} - 해시 기반 O(1) 조회
+ev_stations: Dict[int, Dict] = {}  # {id: station_data} - 해시 기반 O(1) 조회
+users: Dict[int, Dict] = {}  # {id: user_data} - 해시 기반 O(1) 조회
+reservations: Dict[int, Dict] = {}  # {id: reservation_data} - 해시 기반 O(1) 조회
+posts: Dict[int, Dict] = {}  # {id: post_data} - 해시 기반 O(1) 조회
+comments: Dict[int, Dict] = {}  # {id: comment_data} - 해시 기반 O(1) 조회
+
+# [Set 기반 중복 체크 및 집합 연산]
+# 중복 제거(set) — 주차장 타입, EV 여부 필터 등에서 중복 없는 집합 처리 시 유용.
+# 집합(set): 중복 없는 값의 모음 → 이미 예약된 차량번호, 차단된 유저 id 등 "중복 체크"에 사용.
+# set operations(교집합/합집합/차집합) — 필터 기능(예: EV+빈자리+근처거리)에 응용 가능.
 
 # Set 기반 중복 제거 및 빠른 조회
-favorites: Dict[int, Set[int]] = {}  # {user_id: {spot_id1, spot_id2, ...}}
-blocked_users: Set[int] = set()  # 차단된 유저 ID 집합
-reserved_slots: Dict[str, Set[int]] = {}  # {"place_type:place_id": {slot1, slot2, ...}} - place_type과 place_id를 조합한 키로 충돌 방지
-post_likes: Dict[int, Set[int]] = {}  # {post_id: {user_id1, user_id2, ...}} - 좋아요 기능
+favorites: Dict[int, Set[int]] = {}  # {user_id: {spot_id1, spot_id2, ...}} - Set으로 중복 자동 제거
+blocked_users: Set[int] = set()  # 차단된 유저 ID 집합 - Set operations로 빠른 조회
+reserved_slots: Dict[str, Set[int]] = {}  # {"place_type:place_id": {slot1, slot2, ...}} - place_type과 place_id를 조합한 키로 충돌 방지, Set으로 중복 체크
+post_likes: Dict[int, Set[int]] = {}  # {post_id: {user_id1, user_id2, ...}} - 좋아요 기능, Set으로 중복 체크
 
 # ID 카운터 (자동 증가)
 id_counters = {
@@ -45,22 +56,40 @@ id_counters = {
 # ============================================================================
 # 시퀀스 기반 구조: 커스텀 리스트 클래스 (__getitem__, 슬라이싱, __contains__)
 # ============================================================================
+# 
+# [Sequence 기반 구조 (리스트 동작 최적화)]
+# __getitem__으로 반복 가능 객체 만들기 — DB 모델 결과를 커스텀 리스트처럼 만들 수 있음.
+# 슬라이싱 지원 — Pagination 내부 구조를 커스텀 시퀀스로 구현 가능.
+# __contains__ 오버라이드 — 특정 ID 포함 여부 같은 로직 최적화 가능.
+# 
+# [파이썬 기본 자료형 / 시퀀스 계열]
+# 리스트(list): 순서 있는 가변 컬렉션 → 주차장 목록, 댓글 목록, 즐겨찾기 리스트 저장.
+# 슬라이싱(slicing): list[a:b] 잘라 쓰기 → 페이징, 일부 구간만 보여줄 때 재활용.
+# 리스트 컴프리헨션(list comprehension): 한 줄로 리스트 생성 → 더미데이터, id 목록, 필터링 결과 만드는 데 사용.
 
 class ParkingSpotList:
     """
     Sequence 기반 구조: __getitem__으로 반복 가능 객체 만들기
     슬라이싱 지원: Pagination 내부 구조를 커스텀 시퀀스로 구현
     __contains__ 오버라이드: 특정 ID 포함 여부 같은 로직 최적화
+    
+    선형 리스트(배열형 리스트): 인덱스로 바로 접근 가능한 연속 메모리 리스트 → 이미 파이썬 list가 이 역할
     """
     def __init__(self, spots: Dict[int, Dict]):
         self._spots = spots
         self._sorted_ids = sorted(spots.keys())
     
     def __getitem__(self, key):
-        """인덱스로 바로 접근 가능한 연속 메모리 리스트처럼 동작"""
+        """
+        인덱스로 바로 접근 가능한 연속 메모리 리스트처럼 동작
+        선형 리스트(배열형 리스트): 인덱스로 바로 접근 가능한 연속 메모리 리스트
+        """
         if isinstance(key, slice):
             # 슬라이싱 지원: 페이징 결과에서 특정 구간만 반환
+            # 슬라이싱(slicing): list[a:b] 잘라 쓰기 → 페이징, 일부 구간만 보여줄 때 재활용
+            # 슬라이스에 할당 / del: 슬라이싱을 이용해 중간 구간 삭제/치환 → 페이징 결과에서 특정 구간 제거, 다수 레코드 한번에 교체에 응용
             ids = self._sorted_ids[key]
+            # 리스트 컴프리헨션: 한 줄로 리스트 생성 → 필터링 결과 만드는 데 사용
             return [self._spots[id] for id in ids]
         return self._spots[self._sorted_ids[key]]
     
@@ -68,16 +97,25 @@ class ParkingSpotList:
         return len(self._spots)
     
     def __contains__(self, item):
-        """특정 ID 포함 여부 같은 로직 최적화"""
+        """
+        특정 ID 포함 여부 같은 로직 최적화
+        __contains__ 오버라이드 — 특정 ID 포함 여부 같은 로직 최적화 가능
+        """
         return item in self._spots
     
     def __iter__(self):
-        """반복 가능 객체"""
+        """
+        반복 가능 객체
+        일급 객체(first-class function): 함수를 변수처럼 저장, 인자로 넘기고, 반환값으로 돌려줄 수 있음
+        """
         for id in self._sorted_ids:
             yield self._spots[id]
     
     def filter(self, **kwargs):
-        """필터링 기능"""
+        """
+        필터링 기능
+        리스트 컴프리헨션: 한 줄로 리스트 생성 → 필터링 결과 만드는 데 사용
+        """
         result = []
         for spot in self:
             match = True
@@ -93,9 +131,19 @@ class ParkingSpotList:
 # ============================================================================
 # 퍼스트 클래스 함수 / 함수형 요소
 # ============================================================================
+# 
+# [퍼스트 클래스 함수 / 함수형 요소]
+# 일급 객체(first-class function): 함수를 변수처럼 저장, 인자로 넘기고, 반환값으로 돌려줄 수 있음 → 전략 함수, 콜백, 훅 구현에 핵심.
+# 고차 함수(higher-order function): 함수를 받거나 반환하는 함수 → 공통 로직 래핑, 미들웨어 느낌으로 사용.
+# 익명 함수(lambda): 한 줄짜리 작은 함수 → 정렬 기준, 간단 필터 조건에 사용.
+# callable 객체: __call__ 가진 클래스 인스턴스 → "함수처럼 행동하는 객체" 만들어서 상태+로직 묶을 때 사용.
+# map / filter / reduce 대체: 리스트 컴프리헨션 + generator로 깔끔하게 데이터 변환/필터링 → 조회 결과 처리, 통계 계산 등에서 응용.
 
 def get_next_id(entity_type: str) -> int:
-    """ID 생성 함수 (일급 객체: 함수를 변수처럼 사용)"""
+    """
+    ID 생성 함수
+    일급 객체(first-class function): 함수를 변수처럼 저장, 인자로 넘기고, 반환값으로 돌려줄 수 있음
+    """
     id_counters[entity_type] += 1
     return id_counters[entity_type]
 
@@ -105,11 +153,15 @@ def validate_required_fields(*required_fields):
     """
     고차 함수: 공통 로직 래핑, 미들웨어 느낌으로 사용
     데코레이터 패턴으로 요청 데이터 검증
+    
+    고차 함수(higher-order function): 함수를 받거나 반환하는 함수 → 공통 로직 래핑, 미들웨어 느낌으로 사용.
+    클로저(closure): 함수 안에서 외부 변수 캡처해서 상태를 기억하는 함수 → 간단한 캐시, 카운터, 설정이 들어간 함수 만들 때 사용.
     """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             data = request.get_json() or {}
+            # 리스트 컴프리헨션: 한 줄로 리스트 생성 → 필터링 결과 만드는 데 사용
             missing = [field for field in required_fields if field not in data]
             if missing:
                 return jsonify({
@@ -123,15 +175,25 @@ def validate_required_fields(*required_fields):
 # ============================================================================
 # 데코레이터 / 클로저
 # ============================================================================
+# 
+# [데코레이터 / 클로저]
+# 클로저(closure): 함수 안에서 외부 변수 캡처해서 상태를 기억하는 함수 → 간단한 캐시, 카운터, 설정이 들어간 함수 만들 때 사용.
+# nonlocal: 클로저 내부에서 바깥 스코프 변수 수정할 때 쓰는 키워드.
+# 함수 데코레이터(function decorator): 다른 함수를 감싸서 기능을 추가하는 함수 → 인증 체크, 로깅, 실행 시간 측정, 트랜잭션 처리 같은 공통 기능에 바로 적용 가능.
+# 등록용 데코레이터(registration decorator): 어떤 함수들을 자동으로 레지스트리에 모아두는 패턴 → "이벤트 핸들러 목록", "프로모션 전략 목록"처럼 플러그인 모으는 데 사용.
 
 def require_auth(func):
     """
     함수 데코레이터: 인증 체크, 로깅, 실행 시간 측정 같은 공통 기능에 바로 적용
     클로저: 외부 변수 캡처해서 상태를 기억하는 함수
+    
+    함수 데코레이터(function decorator): 다른 함수를 감싸서 기능을 추가하는 함수 → 인증 체크, 로깅, 실행 시간 측정, 트랜잭션 처리 같은 공통 기능에 바로 적용 가능.
+    클로저(closure): 함수 안에서 외부 변수 캡처해서 상태를 기억하는 함수 → 간단한 캐시, 카운터, 설정이 들어간 함수 만들 때 사용.
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
         user_id = request.headers.get('X-User-Id', type=int)
+        # Dictionary 기반 조회(O(1)) - User 빠른 조회 구조
         if user_id is None or user_id not in users:
             return jsonify({'error': 'Authentication required'}), 401
         # request에 user_id 추가
@@ -141,13 +203,18 @@ def require_auth(func):
 
 
 # 등록용 데코레이터: 이벤트 핸들러 목록처럼 플러그인 모으는 데 사용
-event_handlers = {}
+event_handlers = {}  # 딕셔너리: key → value 매핑 → 이벤트 타입별 핸들러 목록 저장
 
 def register_handler(event_type: str):
-    """등록용 데코레이터: 프로모션 전략 목록처럼 플러그인 모으는 데 사용"""
+    """
+    등록용 데코레이터: 프로모션 전략 목록처럼 플러그인 모으는 데 사용
+    
+    등록용 데코레이터(registration decorator): 어떤 함수들을 자동으로 레지스트리에 모아두는 패턴 → "이벤트 핸들러 목록", "프로모션 전략 목록"처럼 플러그인 모으는 데 사용.
+    클로저(closure): 함수 안에서 외부 변수 캡처해서 상태를 기억하는 함수
+    """
     def decorator(func):
         if event_type not in event_handlers:
-            event_handlers[event_type] = []
+            event_handlers[event_type] = []  # 리스트: 순서 있는 가변 컬렉션 → 핸들러 목록 저장
         event_handlers[event_type].append(func)
         return func
     return decorator
@@ -156,16 +223,29 @@ def register_handler(event_type: str):
 # ============================================================================
 # 스택 / 큐 구조
 # ============================================================================
+# 
+# [스택 / 큐]
+# 스택(Stack): LIFO 구조 → 이전 페이지/이전 검색 조건 되돌리기(undo), 깊이우선 탐색 같은 데 사용.
+# 함수 호출 스택 개념: 재귀, 예외 처리, 콜 스택 이해에 필요 → 복잡한 재귀 알고리즘 디버깅할 때 머릿속 모델.
+# 큐(Queue): FIFO 구조 → 예약 처리 대기열, 알림 발송 대기열, 비동기 작업 큐 개념을 이해하는 데 사용.
+# 우선순위 큐(Priority Queue): 우선순위 높은 작업 먼저 처리 → 예) 혼잡도 높은 주차장/긴급 요청 먼저 처리하는 로직에 응용 가능.
 
 # 스택: LIFO 구조 - 이전 페이지/이전 검색 조건 되돌리기(undo)
+# 리스트(list): 순서 있는 가변 컬렉션 → 네비게이션 히스토리 저장
 navigation_stack: List[Dict] = []
 
 def push_navigation(route: str, data: Dict = None):
-    """스택: 이전 페이지 되돌리기(undo)"""
+    """
+    스택: 이전 페이지 되돌리기(undo)
+    스택(Stack): LIFO 구조 → 이전 페이지/이전 검색 조건 되돌리기(undo), 깊이우선 탐색 같은 데 사용.
+    """
     navigation_stack.append({'route': route, 'data': data, 'timestamp': datetime.now()})
 
 def pop_navigation() -> Optional[Dict]:
-    """스택: 이전 페이지 되돌리기(undo)"""
+    """
+    스택: 이전 페이지 되돌리기(undo)
+    스택(Stack): LIFO 구조 → 이전 페이지/이전 검색 조건 되돌리기(undo)
+    """
     return navigation_stack.pop() if navigation_stack else None
 
 
@@ -173,14 +253,25 @@ def pop_navigation() -> Optional[Dict]:
 # (혼잡도 높은 주차장/긴급 요청 먼저 처리하는 로직에 응용 가능)
 from heapq import heappush, heappop
 
+# 리스트(list): 순서 있는 가변 컬렉션 → 우선순위 큐 저장
 priority_queue = []
 
 def add_priority_task(priority: int, task: Dict):
-    """우선순위 큐: 혼잡도 높은 주차장/긴급 요청 먼저 처리"""
+    """
+    우선순위 큐: 혼잡도 높은 주차장/긴급 요청 먼저 처리
+    
+    우선순위 큐(Priority Queue): 우선순위 높은 작업 먼저 처리 → 예) 혼잡도 높은 주차장/긴급 요청 먼저 처리하는 로직에 응용 가능.
+    튜플(tuple): 순서 있지만 불변 → (우선순위, 타임스탬프, 작업) 같은 변경되면 안 되는 묶음에 사용.
+    """
+    # 튜플(tuple): 순서 있지만 불변 → (우선순위, 타임스탬프, 작업) 같은 변경되면 안 되는 묶음에 사용
     heappush(priority_queue, (priority, datetime.now(), task))
 
 def get_next_priority_task() -> Optional[Dict]:
-    """우선순위 큐: 우선순위 높은 작업 먼저 처리"""
+    """
+    우선순위 큐: 우선순위 높은 작업 먼저 처리
+    
+    우선순위 큐(Priority Queue): 우선순위 높은 작업 먼저 처리 → 예) 혼잡도 높은 주차장/긴급 요청 먼저 처리하는 로직에 응용 가능.
+    """
     if priority_queue:
         _, _, task = heappop(priority_queue)
         return task
@@ -284,6 +375,8 @@ def get_parking_spots():
     min_available = request.args.get('min_available', type=int)
     
     # 리스트 컴프리헨션으로 필터링
+    # 리스트 컴프리헨션(list comprehension): 한 줄로 리스트 생성 → 더미데이터, id 목록, 필터링 결과 만드는 데 사용.
+    # map / filter / reduce 대체: 리스트 컴프리헨션 + generator로 깔끔하게 데이터 변환/필터링 → 조회 결과 처리, 통계 계산 등에서 응용.
     filtered_spots = [
         spot for spot in parking_spots.values()
         if (is_ev is None or spot.get('is_ev') == is_ev)
@@ -292,11 +385,14 @@ def get_parking_spots():
     ]
     
     # 슬라이싱: 페이징, 일부 구간만 보여줄 때 재활용
+    # 슬라이싱(slicing): list[a:b] 잘라 쓰기 → 페이징, 일부 구간만 보여줄 때 재활용.
+    # 슬라이스에 할당 / del: 슬라이싱을 이용해 중간 구간 삭제/치환 → 페이징 결과에서 특정 구간 제거, 다수 레코드 한번에 교체에 응용.
     start = (page - 1) * per_page
     end = start + per_page
     paginated_spots = filtered_spots[start:end]
     
     # Dictionary comprehension: JSON 변환 시 빠르고 간결하게 response 구성
+    # dict comprehension — JSON 변환 시 빠르고 간결하게 response 구성 가능.
     return jsonify({
         'spots': paginated_spots,
         'count': len(filtered_spots),
@@ -316,12 +412,15 @@ def get_parking_spot(spot_id):
         return jsonify({'error': 'Parking spot not found'}), 404
     
     # 2차원 리스트: 주차구역 그리드, 좌석/구획 배치 같은 표 형태 데이터
-    slots = []
+    # 2차원 리스트: 리스트 안에 리스트 → 주차구역 그리드, 좌석/구획 배치 같은 표 형태 데이터.
+    slots = []  # 리스트(list): 순서 있는 가변 컬렉션 → 주차장 슬롯 목록 저장
     total_slots = spot.get('total', 12)
     rows = spot.get('rows', 3)
     cols = spot.get('cols', 4)
     # place_type과 place_id를 조합한 키로 충돌 방지
+    # Dictionary 기반 조회(O(1)) - reserved_slots 빠른 조회 구조
     reserved_key = f"parking:{spot_id}"
+    # Set 기반 중복 제거 - 이미 예약된 슬롯인지 확인
     reserved = reserved_slots.get(reserved_key, set())
     
     for i in range(total_slots):
@@ -372,6 +471,8 @@ def create_parking_spot():
         'operating_hours': data.get('operating_hours', '24시간'),
         'image': data.get('image', ''),
         'is_ev': data.get('is_ev', False),
+        # 튜플(tuple): 순서 있지만 불변 → (위도, 경도), (id, 이름) 같은 변경되면 안 되는 묶음에 사용.
+        # 불변 객체(immutable object): 튜플, 문자열처럼 변경 불가 → 안전하게 키, 캐시, dict 키로 사용.
         'latitude': data.get('latitude', 0),
         'longitude': data.get('longitude', 0),
         'description': data.get('description', ''),
@@ -399,6 +500,8 @@ def update_parking_spot(spot_id):
     
     data = request.get_json()
     # 가변 객체(mutable object): 딕셔너리 내부 상태 변경
+    # 가변 객체(mutable object): 리스트, 딕셔너리처럼 내부 상태 변경 가능 → 함수 기본값으로 쓰면 안 되는 타입.
+    # dict comprehension — JSON 변환 시 빠르고 간결하게 response 구성 가능.
     spot.update({k: v for k, v in data.items() if k != 'id'})
     
     return jsonify(spot)
@@ -446,9 +549,16 @@ def get_favorites():
     즐겨찾기 목록
     Set 기반 중복 제거 - 이미 예약된 차량번호, 차단된 유저 id 등 "중복 체크"에 사용
     Set operations(교집합/합집합/차집합) - 필터 기능에 응용
+    
+    집합(set): 중복 없는 값의 모음 → 이미 예약된 차량번호, 차단된 유저 id 등 "중복 체크"에 사용.
+    set operations(교집합/합집합/차집합) — 필터 기능(예: EV+빈자리+근처거리)에 응용 가능.
     """
+    # Dictionary 기반 조회(O(1)) - favorites 빠른 조회 구조
+    # Set 기반 중복 제거 - 이미 예약된 차량번호, 차단된 유저 id 등 "중복 체크"에 사용
     user_favorites = favorites.get(request.user_id, set())
     # Dictionary 기반 조회로 즐겨찾기 주차장 정보 가져오기
+    # 리스트 컴프리헨션: 한 줄로 리스트 생성 → 필터링 결과 만드는 데 사용
+    # dict comprehension — JSON 변환 시 빠르고 간결하게 response 구성 가능.
     favorite_spots = [
         {**parking_spots[fid], 'type': 'parking'} 
         for fid in user_favorites if fid in parking_spots
@@ -487,6 +597,8 @@ def add_favorite(spot_id):
         favorites[request.user_id] = set()
     
     # Set operations: 중복 체크
+    # 집합(set): 중복 없는 값의 모음 → 이미 예약된 차량번호, 차단된 유저 id 등 "중복 체크"에 사용.
+    # set operations(교집합/합집합/차집합) — 필터 기능(예: EV+빈자리+근처거리)에 응용 가능.
     favorites[request.user_id].add(spot_id)
     return jsonify({'message': 'Favorite added'})
 
@@ -614,10 +726,13 @@ def create_reservation():
     
     # Set operations: 중복 체크 (이미 예약된 슬롯인지 확인)
     # place_type과 place_id를 조합한 키로 충돌 방지 (주차장과 충전소가 같은 ID를 가져도 충돌 없음)
+    # 집합(set): 중복 없는 값의 모음 → 이미 예약된 차량번호, 차단된 유저 id 등 "중복 체크"에 사용.
+    # set operations(교집합/합집합/차집합) — 필터 기능(예: EV+빈자리+근처거리)에 응용 가능.
     reserved_key = f"{place_type}:{place_id}"
     if reserved_key not in reserved_slots:
         reserved_slots[reserved_key] = set()
     
+    # Set 기반 중복 체크 - 이미 예약된 슬롯인지 확인
     if slot in reserved_slots[reserved_key]:
         return jsonify({'error': 'Slot already reserved'}), 400
     
@@ -669,6 +784,8 @@ def get_my_reservations():
     리스트 컴프리헨션: 필터링 결과 만드는 데 사용
     """
     # 리스트 컴프리헨션으로 내 예약 필터링
+    # 리스트 컴프리헨션(list comprehension): 한 줄로 리스트 생성 → 더미데이터, id 목록, 필터링 결과 만드는 데 사용.
+    # map / filter / reduce 대체: 리스트 컴프리헨션 + generator로 깔끔하게 데이터 변환/필터링 → 조회 결과 처리, 통계 계산 등에서 응용.
     my_reservations = [
         reservation for reservation in reservations.values()
         if reservation.get('user_id') == request.user_id
@@ -694,6 +811,7 @@ def get_my_reservations():
             reservation['place_address'] = ''
     
     # 날짜순 정렬 (최신순)
+    # 익명 함수(lambda): 한 줄짜리 작은 함수 → 정렬 기준, 간단 필터 조건에 사용.
     my_reservations.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
     return jsonify({
@@ -764,14 +882,17 @@ def get_posts():
     sort_by = request.args.get('sort', 'date')  # 'date' or 'likes'
     
     # 리스트 컴프리헨션으로 게시글 목록 생성
+    # 리스트(list): 순서 있는 가변 컬렉션 → 게시글 목록 저장
     post_list = list(posts.values())
     
     # 좋아요 수 업데이트 (Set operations: 중복 제거)
+    # 집합(set): 중복 없는 값의 모음 → 이미 좋아요한 사용자 id 등 "중복 체크"에 사용.
     for post in post_list:
         likes_set = post_likes.get(post['id'], set())
         post['likes'] = len(likes_set)
     
     # 정렬: 좋아요 순 또는 날짜 순
+    # 익명 함수(lambda): 한 줄짜리 작은 함수 → 정렬 기준, 간단 필터 조건에 사용.
     if sort_by == 'likes':
         post_list.sort(key=lambda x: (x.get('likes', 0), x.get('created_at', datetime.min)), reverse=True)
     else:
@@ -819,7 +940,9 @@ def get_post(post_id):
     post['is_liked'] = user_id in likes_set if user_id else False
     
     # 댓글 목록 가져오기 (리스트 컴프리헨션)
+    # 리스트 컴프리헨션(list comprehension): 한 줄로 리스트 생성 → 더미데이터, id 목록, 필터링 결과 만드는 데 사용.
     post_comments = [c for c in comments.values() if c.get('post_id') == post_id]
+    # 익명 함수(lambda): 한 줄짜리 작은 함수 → 정렬 기준, 간단 필터 조건에 사용.
     post_comments.sort(key=lambda x: x.get('created_at', datetime.min))
     
     post_detail = post.copy()
@@ -876,6 +999,8 @@ def update_post(post_id):
     
     data = request.get_json()
     # 가변 객체(mutable object): 딕셔너리 내부 상태 변경
+    # 가변 객체(mutable object): 리스트, 딕셔너리처럼 내부 상태 변경 가능 → 함수 기본값으로 쓰면 안 되는 타입.
+    # dict comprehension — JSON 변환 시 빠르고 간결하게 response 구성 가능.
     post.update({k: v for k, v in data.items() if k not in ['id', 'author_id', 'created_at']})
     
     return jsonify(post)
@@ -899,7 +1024,9 @@ def delete_post(post_id):
     del posts[post_id]
     
     # 관련 댓글도 삭제 (리스트 컴프리헨션)
+    # 리스트 컴프리헨션(list comprehension): 한 줄로 리스트 생성 → 더미데이터, id 목록, 필터링 결과 만드는 데 사용.
     comment_ids_to_delete = [cid for cid, comment in comments.items() if comment.get('post_id') == post_id]
+    # 슬라이스에 할당 / del: 슬라이싱을 이용해 중간 구간 삭제/치환 → 페이징 결과에서 특정 구간 제거, 다수 레코드 한번에 교체에 응용.
     for cid in comment_ids_to_delete:
         del comments[cid]
     
@@ -960,10 +1087,13 @@ def toggle_like(post_id):
         return jsonify({'error': 'Post not found'}), 404
     
     # Set operations: 중복 체크
+    # 집합(set): 중복 없는 값의 모음 → 이미 좋아요한 사용자 id 등 "중복 체크"에 사용.
+    # set operations(교집합/합집합/차집합) — 필터 기능(예: EV+빈자리+근처거리)에 응용 가능.
     if post_id not in post_likes:
         post_likes[post_id] = set()
     
     likes_set = post_likes[post_id]
+    # Set 기반 중복 체크 - 이미 좋아요한 사용자인지 확인
     if request.user_id in likes_set:
         # 좋아요 취소
         likes_set.discard(request.user_id)
@@ -1042,6 +1172,8 @@ def create_ev_station():
         'price_per_kwh': data.get('price_per_kwh', 200),
         'operating_hours': data.get('operating_hours', '24시간'),
         'image': data.get('image', ''),
+        # 튜플(tuple): 순서 있지만 불변 → (위도, 경도), (id, 이름) 같은 변경되면 안 되는 묶음에 사용.
+        # 불변 객체(immutable object): 튜플, 문자열처럼 변경 불가 → 안전하게 키, 캐시, dict 키로 사용.
         'latitude': data.get('latitude', 0),
         'longitude': data.get('longitude', 0),
         'description': data.get('description', ''),
@@ -1081,6 +1213,8 @@ def update_ev_station(station_id):
     
     data = request.get_json()
     # 가변 객체(mutable object): 딕셔너리 내부 상태 변경
+    # 가변 객체(mutable object): 리스트, 딕셔너리처럼 내부 상태 변경 가능 → 함수 기본값으로 쓰면 안 되는 타입.
+    # dict comprehension — JSON 변환 시 빠르고 간결하게 response 구성 가능.
     station.update({k: v for k, v in data.items() if k != 'id'})
     
     return jsonify(station)
