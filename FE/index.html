@@ -1,0 +1,2860 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Parking UX - Responsive React Demo</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <script src="https://unpkg.com/htm@3.1.0/dist/htm.umd.js"></script>
+    <!-- Babel for JSX in-browser (fine for demo) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel" data-presets="react">
+      const { useState, useEffect, createContext, useContext } = React;
+
+      // API 기본 URL
+      const API_BASE = "http://18.191.185.124:8000";
+
+      // API 유틸리티 함수
+      const apiCall = async (endpoint, options = {}) => {
+        const url = `${API_BASE}${endpoint}`;
+        const defaultOptions = {
+          headers: {
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        };
+
+        // 인증이 필요한 경우 user_id 헤더 추가
+        const user = JSON.parse(localStorage.getItem("user") || "null");
+        if (user && user.id) {
+          defaultOptions.headers["X-User-Id"] = user.id;
+        }
+
+        try {
+          const response = await fetch(url, { ...defaultOptions, ...options });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "API 요청 실패");
+          }
+          return data;
+        } catch (error) {
+          console.error("API Error:", error);
+          throw error;
+        }
+      };
+
+      // 인증 컨텍스트
+      const AuthContext = createContext();
+
+      const AuthProvider = ({ children }) => {
+        const [user, setUser] = useState(() => {
+          const saved = localStorage.getItem("user");
+          return saved ? JSON.parse(saved) : null;
+        });
+
+        const login = (userData) => {
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
+        };
+
+        const logout = async () => {
+          try {
+            await apiCall("/logout", { method: "POST" });
+          } catch (e) {
+            console.error("Logout error:", e);
+          }
+          setUser(null);
+          localStorage.removeItem("user");
+        };
+
+        return (
+          <AuthContext.Provider value={{ user, login, logout }}>
+            {children}
+          </AuthContext.Provider>
+        );
+      };
+
+      const useAuth = () => useContext(AuthContext);
+
+      const AppHeader = ({ onNav }) => {
+        const { user, logout } = useAuth();
+        return (
+          <header className="app-header">
+            <div className="brand" onClick={() => onNav("home")}>
+              <div className="logo-circle">P</div>
+              <div className="brand-text">
+                <div className="title">PlinkU</div>
+                <div className="subtitle">주차를 더 편하게</div>
+              </div>
+            </div>
+            <nav className="nav">
+              <button onClick={() => onNav("finder")}>주차장</button>
+              <button onClick={() => onNav("ev")}>충전소</button>
+              <button onClick={() => onNav("market")}>마켓</button>
+              <button onClick={() => onNav("community")}>커뮤니티</button>
+              {user ? (
+                <button
+                  className="cta"
+                  onClick={() => {
+                    logout();
+                    onNav("home");
+                  }}
+                >
+                  로그아웃
+                </button>
+              ) : (
+                <button className="cta" onClick={() => onNav("login")}>
+                  로그인
+                </button>
+              )}
+            </nav>
+            <div
+              className="hamburger"
+              onClick={() => document.body.classList.toggle("nav-open")}
+            >
+              <span className="material-icons">menu</span>
+            </div>
+          </header>
+        );
+      };
+
+      const Home = ({ onNav }) => {
+        const { user } = useAuth();
+        const [favorites, setFavorites] = useState([]);
+        const [loading, setLoading] = useState(true);
+
+        useEffect(() => {
+          if (user) {
+            loadFavorites();
+          } else {
+            setFavorites([]);
+            setLoading(false);
+          }
+        }, [user]);
+
+        const loadFavorites = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall("/favorites");
+            setFavorites(data.favorites || []);
+          } catch (error) {
+            console.error("Failed to load favorites:", error);
+            setFavorites([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const removeFavorite = async (id, e) => {
+          e.stopPropagation();
+          try {
+            await apiCall(`/favorites/${id}`, { method: "DELETE" });
+            setFavorites((prev) => prev.filter((f) => f.id !== id));
+          } catch (error) {
+            console.error("즐겨찾기 삭제 실패:", error);
+          }
+        };
+        return (
+          <main className="page home">
+            <section className="hero">
+              <div className="hero-left">
+                <h1>간편한 주차, 편리한 예약</h1>
+                <p>주차장 검색 · 예약 · 충전 · 마켓 플레이스를 한 번에.</p>
+              </div>
+            </section>
+
+            <section className="favorites-section">
+              <div className="section-header">
+                <h2 className="section-title">즐겨찾는 장소</h2>
+                {favorites.length > 3 && (
+                  <button
+                    className="view-all-btn"
+                    onClick={() => onNav("favorites")}
+                  >
+                    전체보기
+                  </button>
+                )}
+              </div>
+              {loading ? (
+                <p>로딩 중...</p>
+              ) : favorites.length === 0 ? (
+                <p>
+                  {user
+                    ? "즐겨찾는 장소가 없습니다."
+                    : "로그인 후 즐겨찾기를 추가하세요."}
+                </p>
+              ) : (
+                <div className="favorites-list">
+                  {favorites.slice(0, 3).map((fav) => (
+                    <div className="favorite-card" key={fav.id}>
+                      <div
+                        className="favorite-image"
+                        onClick={() =>
+                          fav.type === "ev"
+                            ? onNav("evDetail", fav)
+                            : onNav("detail", fav)
+                        }
+                      >
+                        {fav.image ? (
+                          <img src={fav.image} alt={fav.name} />
+                        ) : (
+                          <div className="image-placeholder">
+                            <span className="material-icons">
+                              {fav.type === "ev"
+                                ? "ev_station"
+                                : "local_parking"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className="favorite-info"
+                        onClick={() =>
+                          fav.type === "ev"
+                            ? onNav("evDetail", fav)
+                            : onNav("detail", fav)
+                        }
+                      >
+                        <div className="favorite-name">
+                          <span className="material-icons favorite-type-icon">
+                            {fav.type === "ev" ? "ev_station" : "local_parking"}
+                          </span>
+                          {fav.name}
+                        </div>
+                        <div className="favorite-meta">
+                          {fav.distance ? `${fav.distance}km` : ""} ·{" "}
+                          {fav.type === "ev"
+                            ? `충전기 ${fav.available || 0}대`
+                            : `잔여 ${fav.available || 0}개`}
+                        </div>
+                      </div>
+                      <div className="favorite-actions">
+                        <button
+                          className="favorite-remove-btn"
+                          onClick={(e) => removeFavorite(fav.id, e)}
+                          title="즐겨찾기 해제"
+                        >
+                          <span className="material-icons">star</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="main-tabs">
+              <div className="tab-card" onClick={() => onNav("finder")}>
+                <div className="tab-icon">
+                  <span className="material-icons">local_parking</span>
+                </div>
+                <h3>주차장 찾기</h3>
+                <p>근처 주차장을 검색하고 남은 공간을 실시간으로 확인하세요.</p>
+              </div>
+              <div className="tab-card" onClick={() => onNav("ev")}>
+                <div className="tab-icon">
+                  <span className="material-icons">ev_station</span>
+                </div>
+                <h3>충전하기</h3>
+                <p>근처 충전소를 찾아보고 간편하게 충전해 보세요.</p>
+              </div>
+              <div className="tab-card" onClick={() => onNav("market")}>
+                <div className="tab-icon">
+                  <span className="material-icons">store</span>
+                </div>
+                <h3>마켓플레이스</h3>
+                <p>주차장을 등록하고 관리하여 수익을 창출하세요.</p>
+              </div>
+            </section>
+          </main>
+        );
+      };
+
+      const Finder = ({ onNav }) => {
+        const { user } = useAuth();
+        const [spots, setSpots] = useState([]);
+        const [favorites, setFavorites] = useState(new Set());
+        const [loading, setLoading] = useState(true);
+        const [currentPage, setCurrentPage] = useState(1);
+        const [totalCount, setTotalCount] = useState(0);
+        const perPage = 10;
+
+        useEffect(() => {
+          loadSpots();
+          if (user) {
+            loadFavorites();
+          }
+        }, [user, currentPage]);
+
+        const loadSpots = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall(
+              `/parking-spots?page=${currentPage}&per_page=${perPage}`
+            );
+            setSpots(data.spots || []);
+            setTotalCount(data.count || 0);
+          } catch (error) {
+            console.error("Failed to load spots:", error);
+            setSpots([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const loadFavorites = async () => {
+          try {
+            const data = await apiCall("/favorites");
+            const favoriteIds = new Set(
+              (data.favorites || []).map((f) => f.id)
+            );
+            setFavorites(favoriteIds);
+          } catch (error) {
+            console.error("Failed to load favorites:", error);
+          }
+        };
+
+        const toggleFavorite = async (id, placeType, e) => {
+          e.stopPropagation();
+          if (!user) {
+            onNav("login");
+            return;
+          }
+
+          try {
+            if (favorites.has(id)) {
+              await apiCall(`/favorites/${id}`, { method: "DELETE" });
+              setFavorites((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(id);
+                return newSet;
+              });
+            } else {
+              await apiCall(`/favorites/${id}`, {
+                method: "POST",
+                body: JSON.stringify({ place_type: placeType }),
+              });
+              setFavorites((prev) => {
+                const newSet = new Set(prev);
+                newSet.add(id);
+                return newSet;
+              });
+            }
+          } catch (error) {
+            console.error("즐겨찾기 처리 실패:", error);
+          }
+        };
+        return (
+          <div className="page finder">
+            <h2>주차장 찾기</h2>
+            {loading ? (
+              <p>로딩 중...</p>
+            ) : spots.length === 0 ? (
+              <p>등록된 주차장이 없습니다.</p>
+            ) : (
+              <div className="list">
+                {spots.map((s) => (
+                  <div className="spot-card" key={s.id}>
+                    <div className="spot-image">
+                      {s.image ? (
+                        <img src={s.image} alt={s.name} />
+                      ) : (
+                        <div className="image-placeholder">
+                          <span className="material-icons">local_parking</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="spot-info">
+                      <div className="spot-name">{s.name}</div>
+                      <div className="spot-meta">
+                        {s.distance ? `${s.distance}km` : ""} · 잔여{" "}
+                        {s.available || 0}개
+                      </div>
+                    </div>
+                    <div className="spot-actions">
+                      {user && (
+                        <button
+                          className={`favorite-btn ${
+                            favorites.has(s.id) ? "active" : ""
+                          }`}
+                          onClick={(e) => toggleFavorite(s.id, "parking", e)}
+                          title={
+                            favorites.has(s.id)
+                              ? "즐겨찾기 해제"
+                              : "즐겨찾기 추가"
+                          }
+                        >
+                          <span className="material-icons">
+                            {favorites.has(s.id) ? "star" : "star_border"}
+                          </span>
+                        </button>
+                      )}
+                      <button onClick={() => onNav("detail", s)}>
+                        상세보기
+                      </button>
+                      <button
+                        className="primary"
+                        onClick={() => {
+                          if (!user) {
+                            onNav("login");
+                          } else {
+                            onNav("reserve", s, "finder");
+                          }
+                        }}
+                      >
+                        예약하기
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {totalCount > perPage && (
+              <div className="pagination">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  이전
+                </button>
+                <span>
+                  {currentPage} / {Math.ceil(totalCount / perPage)}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(Math.ceil(totalCount / perPage), p + 1)
+                    )
+                  }
+                  disabled={currentPage >= Math.ceil(totalCount / perPage)}
+                >
+                  다음
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const Detail = ({ data, onNav }) => {
+        const { user } = useAuth();
+        const [spot, setSpot] = useState(data);
+        const [loading, setLoading] = useState(!data);
+
+        useEffect(() => {
+          if (data && data.id) {
+            loadSpot(data.id);
+          }
+        }, [data]);
+
+        const loadSpot = async (id) => {
+          try {
+            setLoading(true);
+            const spotData = await apiCall(`/parking-spots/${id}`);
+            setSpot(spotData);
+          } catch (error) {
+            console.error("Failed to load spot:", error);
+            setSpot(null);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        if (!spot && !loading)
+          return (
+            <div className="page">
+              <p>선택된 주차장이 없습니다.</p>
+            </div>
+          );
+
+        if (loading) {
+          return (
+            <div className="page">
+              <p>로딩 중...</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="page detail">
+            <h2>{spot.name}</h2>
+            <div className="grid">
+              <div className="map-card">
+                <div className="map-header">실시간 주차 현황</div>
+                <div className="parking-grid">
+                  {(
+                    spot.slots ||
+                    Array.from({ length: spot.total || 12 }).map((_, i) => ({
+                      id: i,
+                      taken: false,
+                      free: true,
+                    }))
+                  ).map((slot, i) => (
+                    <div
+                      key={slot.id || i}
+                      className={"slot " + (slot.taken ? "taken" : "free")}
+                    >
+                      <span
+                        className={`material-icons vehicle-icon ${
+                          slot.taken ? "taken" : "free"
+                        }`}
+                      >
+                        directions_car
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="info-card">
+                <p>주소: {spot.address || "주소 정보 없음"}</p>
+                <p>요금: 1시간 {spot.price_per_hour || 0}원</p>
+                <p>운영시간: {spot.operating_hours || "24시간"}</p>
+                <p>잔여 공간: {spot.available || 0}개</p>
+                {spot.rows && spot.cols && (
+                  <p>
+                    구성: {spot.rows}행 × {spot.cols}열 (총{" "}
+                    {spot.total || spot.rows * spot.cols}개)
+                  </p>
+                )}
+                <div className="actions">
+                  <button onClick={() => onNav("finder")}>뒤로</button>
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      if (!user) {
+                        onNav("login");
+                      } else {
+                        onNav("reserve", spot, "detail");
+                      }
+                    }}
+                  >
+                    예약하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Reserve = ({ data, onNav, fromPage }) => {
+        const { user } = useAuth();
+        const [startDate, setStartDate] = useState("");
+        const [startTime, setStartTime] = useState("");
+        const [endDate, setEndDate] = useState("");
+        const [endTime, setEndTime] = useState("");
+        const [selectedSlot, setSelectedSlot] = useState(null);
+        const [slots, setSlots] = useState([]);
+        const [rows, setRows] = useState(3);
+        const [cols, setCols] = useState(4);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState("");
+        const isEV = fromPage === "ev" || fromPage === "evDetail";
+
+        useEffect(() => {
+          if (!user) {
+            onNav("login");
+            return;
+          }
+          if (data && data.id) {
+            loadDetail();
+          }
+          // 오늘 날짜를 기본값으로 설정
+          const today = new Date();
+          const todayStr = today.toISOString().split("T")[0];
+          setStartDate(todayStr);
+          setEndDate(todayStr);
+          setStartTime("09:00");
+          setEndTime("18:00");
+        }, [data]);
+
+        const loadDetail = async () => {
+          try {
+            setLoading(true);
+            const endpoint = isEV
+              ? `/ev-stations/${data.id}`
+              : `/parking-spots/${data.id}`;
+            const detail = await apiCall(endpoint);
+            setSlots(detail.slots || detail.chargers || []);
+            setRows(detail.rows || 3);
+            setCols(detail.cols || 4);
+          } catch (error) {
+            console.error("Failed to load detail:", error);
+            setSlots([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const getBackRoute = () => {
+          if (isEV) return "evDetail";
+          if (fromPage === "finder") return "finder";
+          return "detail";
+        };
+
+        const handleReserve = async () => {
+          if (
+            !startDate ||
+            !startTime ||
+            !endDate ||
+            !endTime ||
+            selectedSlot === null
+          ) {
+            setError("모든 정보를 입력해주세요.");
+            return;
+          }
+
+          const startDateTime = new Date(`${startDate}T${startTime}`);
+          const endDateTime = new Date(`${endDate}T${endTime}`);
+
+          if (endDateTime <= startDateTime) {
+            setError("종료 시간은 시작 시간보다 늦어야 합니다.");
+            return;
+          }
+
+          try {
+            setError("");
+            const reservation = await apiCall("/reservations", {
+              method: "POST",
+              body: JSON.stringify({
+                place_id: data.id,
+                place_type: isEV ? "ev" : "parking",
+                start_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
+                slot: selectedSlot,
+              }),
+            });
+            const selectedSlotData = slots.find((s) => s.id === selectedSlot);
+            onNav("complete", {
+              name: data?.name,
+              startTime: startDateTime.toISOString(),
+              endTime: endDateTime.toISOString(),
+              slot: selectedSlot,
+              slotRow: selectedSlotData?.row,
+              slotCol: selectedSlotData?.col,
+              reservation,
+            });
+          } catch (error) {
+            setError("예약 실패: " + error.message);
+          }
+        };
+        return (
+          <div className="page reserve">
+            <h2>예약하기</h2>
+            <div className="reserve-content">
+              <div className="card">
+                {error && (
+                  <div className="error-message">
+                    <span className="material-icons">error</span>
+                    {error}
+                  </div>
+                )}
+                <p className="parking-name">
+                  {isEV ? "충전소" : "주차장"}:{" "}
+                  <strong>{data?.name || "선택 없음"}</strong>
+                </p>
+                <div className="time-selection">
+                  <div className="time-group">
+                    <label>
+                      <span className="time-label-text">
+                        <span className="material-icons">schedule</span>
+                        시작 시간
+                      </span>
+                      <div className="time-input-group">
+                        <div className="time-input-wrapper">
+                          <span className="material-icons">calendar_today</span>
+                          <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            min={new Date().toISOString().split("T")[0]}
+                          />
+                        </div>
+                        <div className="time-input-wrapper">
+                          <span className="material-icons">access_time</span>
+                          <input
+                            type="time"
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="time-group">
+                    <label>
+                      <span className="time-label-text">
+                        <span className="material-icons">schedule</span>
+                        종료 시간
+                      </span>
+                      <div className="time-input-group">
+                        <div className="time-input-wrapper">
+                          <span className="material-icons">calendar_today</span>
+                          <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            min={
+                              startDate ||
+                              new Date().toISOString().split("T")[0]
+                            }
+                          />
+                        </div>
+                        <div className="time-input-wrapper">
+                          <span className="material-icons">access_time</span>
+                          <input
+                            type="time"
+                            value={endTime}
+                            onChange={(e) => setEndTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <div className="slot-selection">
+                  <p className="selection-label">
+                    {isEV ? "충전기" : "주차 공간"} 선택 ({rows}행 × {cols}열)
+                  </p>
+                  {loading ? (
+                    <p>로딩 중...</p>
+                  ) : (
+                    <div
+                      className="parking-grid-select"
+                      style={{
+                        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                      }}
+                    >
+                      {slots.map((slot) => {
+                        const slotRow =
+                          slot.row !== undefined
+                            ? slot.row
+                            : Math.floor(slot.id / cols);
+                        const slotCol =
+                          slot.col !== undefined ? slot.col : slot.id % cols;
+                        return (
+                          <div
+                            key={slot.id}
+                            className={`slot-select ${
+                              slot.taken ? "taken" : "free"
+                            } ${selectedSlot === slot.id ? "selected" : ""}`}
+                            onClick={() =>
+                              !slot.taken && setSelectedSlot(slot.id)
+                            }
+                            title={`${slotRow + 1}-${slotCol + 1}번`}
+                          >
+                            <span className="slot-number">
+                              {slotRow + 1}-{slotCol + 1}
+                            </span>
+                            {slot.taken ? (
+                              <span
+                                className={`material-icons vehicle-icon taken`}
+                              >
+                                {isEV ? "ev_station" : "directions_car"}
+                              </span>
+                            ) : (
+                              <span
+                                className={`material-icons vehicle-icon free`}
+                              >
+                                {isEV ? "ev_station" : "directions_car"}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {selectedSlot !== null && (
+                    <p className="selected-info">
+                      선택된 {isEV ? "충전기" : "공간"}:{" "}
+                      {(() => {
+                        const slot = slots.find((s) => s.id === selectedSlot);
+                        if (slot) {
+                          const slotRow =
+                            slot.row !== undefined
+                              ? slot.row
+                              : Math.floor(slot.id / cols);
+                          const slotCol =
+                            slot.col !== undefined ? slot.col : slot.id % cols;
+                          return `${slotRow + 1}-${slotCol + 1}번`;
+                        }
+                        return `${selectedSlot + 1}번`;
+                      })()}
+                    </p>
+                  )}
+                </div>
+                <div className="actions">
+                  <button onClick={() => onNav(getBackRoute(), data)}>
+                    취소
+                  </button>
+                  <button
+                    className="primary"
+                    onClick={handleReserve}
+                    disabled={
+                      selectedSlot === null ||
+                      !startDate ||
+                      !startTime ||
+                      !endDate ||
+                      !endTime ||
+                      loading
+                    }
+                  >
+                    {loading ? "로딩 중..." : "예약 완료"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Complete = ({ info, onNav }) => {
+        const formatDateTime = (dateTimeString) => {
+          if (!dateTimeString) return "";
+          try {
+            const date = new Date(dateTimeString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            return `${year}년 ${month}월 ${day}일 ${hours}:${minutes}`;
+          } catch (e) {
+            return dateTimeString;
+          }
+        };
+
+        return (
+          <div className="page complete">
+            <div className="center-card">
+              <div className="success-icon">
+                <span className="material-icons">check_circle</span>
+              </div>
+              <h3>예약이 완료되었습니다!</h3>
+              <p className="reservation-name">{info?.name}</p>
+              {info?.startTime && info?.endTime && (
+                <div className="time-info-container">
+                  <div className="time-item">
+                    <span className="material-icons">schedule</span>
+                    <div className="time-details">
+                      <span className="time-label">시작</span>
+                      <span className="time-value">
+                        {formatDateTime(info.startTime)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="time-separator">
+                    <span className="material-icons">arrow_downward</span>
+                  </div>
+                  <div className="time-item">
+                    <span className="material-icons">schedule</span>
+                    <div className="time-details">
+                      <span className="time-label">종료</span>
+                      <span className="time-value">
+                        {formatDateTime(info.endTime)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {info?.slot !== null && info?.slot !== undefined && (
+                <p className="slot-info">
+                  선택된 공간:{" "}
+                  {info.slotRow !== undefined && info.slotCol !== undefined
+                    ? `${info.slotRow + 1}-${info.slotCol + 1}번`
+                    : `${info.slot + 1}번`}
+                </p>
+              )}
+              <div className="actions">
+                <button className="primary" onClick={() => onNav("home")}>
+                  홈으로
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const EVDetail = ({ data, onNav }) => {
+        const { user } = useAuth();
+        const [station, setStation] = useState(data);
+        const [loading, setLoading] = useState(!data);
+
+        useEffect(() => {
+          if (data && data.id) {
+            loadStation(data.id);
+          }
+        }, [data]);
+
+        const loadStation = async (id) => {
+          try {
+            setLoading(true);
+            const stationData = await apiCall(`/ev-stations/${id}`);
+            setStation(stationData);
+          } catch (error) {
+            console.error("Failed to load station:", error);
+            setStation(null);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        if (!station && !loading)
+          return (
+            <div className="page">
+              <p>선택된 충전소가 없습니다.</p>
+            </div>
+          );
+
+        if (loading) {
+          return (
+            <div className="page">
+              <p>로딩 중...</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="page detail">
+            <h2>{station.name}</h2>
+            <div className="grid">
+              <div className="map-card">
+                <div className="map-header">충전기 현황</div>
+                <div className="parking-grid">
+                  {(
+                    station.chargers ||
+                    Array.from({ length: station.total || 4 }).map((_, i) => ({
+                      id: i,
+                      taken: false,
+                      free: true,
+                    }))
+                  ).map((charger, i) => (
+                    <div
+                      key={charger.id || i}
+                      className={"slot " + (charger.taken ? "taken" : "free")}
+                    >
+                      <span
+                        className={`material-icons vehicle-icon ${
+                          charger.taken ? "taken" : "free"
+                        }`}
+                      >
+                        ev_station
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="info-card">
+                <p>주소: {station.address || "주소 정보 없음"}</p>
+                <p>요금: 1kWh당 {station.price_per_kwh || 0}원</p>
+                <p>운영시간: {station.operating_hours || "24시간"}</p>
+                <p>충전기: {station.available || 0}대 사용 가능</p>
+                {station.rows && station.cols && (
+                  <p>
+                    구성: {station.rows}행 × {station.cols}열 (총{" "}
+                    {station.total || station.rows * station.cols}대)
+                  </p>
+                )}
+                <div className="actions">
+                  <button onClick={() => onNav("ev")}>뒤로</button>
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      if (!user) {
+                        onNav("login");
+                      } else {
+                        onNav("reserve", station, "evDetail");
+                      }
+                    }}
+                  >
+                    예약하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const EV = ({ onNav }) => {
+        const { user } = useAuth();
+        const [stations, setStations] = useState([]);
+        const [favorites, setFavorites] = useState(new Set());
+        const [loading, setLoading] = useState(true);
+        const [currentPage, setCurrentPage] = useState(1);
+        const [totalCount, setTotalCount] = useState(0);
+        const perPage = 10;
+
+        useEffect(() => {
+          loadStations();
+          if (user) {
+            loadFavorites();
+          }
+        }, [user, currentPage]);
+
+        const loadStations = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall(
+              `/ev-stations?page=${currentPage}&per_page=${perPage}`
+            );
+            setStations(data.stations || []);
+            setTotalCount(data.count || 0);
+          } catch (error) {
+            console.error("Failed to load stations:", error);
+            setStations([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const loadFavorites = async () => {
+          try {
+            const data = await apiCall("/favorites");
+            const favoriteIds = new Set(
+              (data.favorites || []).map((f) => f.id)
+            );
+            setFavorites(favoriteIds);
+          } catch (error) {
+            console.error("Failed to load favorites:", error);
+          }
+        };
+
+        const toggleFavorite = async (id, placeType, e) => {
+          e.stopPropagation();
+          if (!user) {
+            onNav("login");
+            return;
+          }
+
+          try {
+            if (favorites.has(id)) {
+              await apiCall(`/favorites/${id}`, { method: "DELETE" });
+              setFavorites((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(id);
+                return newSet;
+              });
+            } else {
+              await apiCall(`/favorites/${id}`, {
+                method: "POST",
+                body: JSON.stringify({ place_type: placeType }),
+              });
+              setFavorites((prev) => {
+                const newSet = new Set(prev);
+                newSet.add(id);
+                return newSet;
+              });
+            }
+          } catch (error) {
+            console.error("즐겨찾기 처리 실패:", error);
+          }
+        };
+        return (
+          <div className="page ev">
+            <h2>전기차 충전소</h2>
+            {loading ? (
+              <p>로딩 중...</p>
+            ) : stations.length === 0 ? (
+              <p>등록된 충전소가 없습니다.</p>
+            ) : (
+              <div className="list">
+                {stations.map((s) => (
+                  <div className="spot-card" key={s.id}>
+                    <div className="spot-image">
+                      {s.image ? (
+                        <img src={s.image} alt={s.name} />
+                      ) : (
+                        <div className="image-placeholder">
+                          <span className="material-icons">ev_station</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="spot-info">
+                      <div className="spot-name">{s.name}</div>
+                      <div className="spot-meta">
+                        {s.distance ? `${s.distance}km` : ""} · 충전기{" "}
+                        {s.available || 0}대
+                      </div>
+                    </div>
+                    <div className="spot-actions">
+                      {user && (
+                        <button
+                          className={`favorite-btn ${
+                            favorites.has(s.id) ? "active" : ""
+                          }`}
+                          onClick={(e) => toggleFavorite(s.id, "ev", e)}
+                          title={
+                            favorites.has(s.id)
+                              ? "즐겨찾기 해제"
+                              : "즐겨찾기 추가"
+                          }
+                        >
+                          <span className="material-icons">
+                            {favorites.has(s.id) ? "star" : "star_border"}
+                          </span>
+                        </button>
+                      )}
+                      <button onClick={() => onNav("evDetail", s)}>상세</button>
+                      <button
+                        className="primary"
+                        onClick={() => {
+                          if (!user) {
+                            onNav("login");
+                          } else {
+                            onNav("reserve", s, "ev");
+                          }
+                        }}
+                      >
+                        예약
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {totalCount > perPage && (
+              <div className="pagination">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  이전
+                </button>
+                <span>
+                  {currentPage} / {Math.ceil(totalCount / perPage)}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(Math.ceil(totalCount / perPage), p + 1)
+                    )
+                  }
+                  disabled={currentPage >= Math.ceil(totalCount / perPage)}
+                >
+                  다음
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const Market = ({ onNav }) => {
+        return (
+          <div className="page market">
+            <h2>마켓 플레이스</h2>
+            <div className="grid-cards">
+              <div
+                className="market-card"
+                onClick={() => onNav("register", { type: "parking" })}
+              >
+                <div className="market-icon">
+                  <span className="material-icons">local_parking</span>
+                </div>
+                <h4>내 장소 등록하기</h4>
+                <p>
+                  주차장 또는 충전소를 등록하여 다른 사용자들에게 제공하고
+                  수익을 창출하세요.
+                </p>
+                <button className="primary">등록하기</button>
+              </div>
+              <div className="market-card" onClick={() => onNav("manage")}>
+                <div className="market-icon">
+                  <span className="material-icons">settings</span>
+                </div>
+                <h4>내 장소 관리하기</h4>
+                <p>
+                  등록된 주차장과 충전소를 관리하고 수정하며 예약 현황을
+                  확인하세요.
+                </p>
+                <button className="primary">관리하기</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Register = ({ onNav, data }) => {
+        const { user } = useAuth();
+        const [type, setType] = useState(data?.type || "parking"); // "parking" or "ev"
+        const [name, setName] = useState("");
+        const [addr, setAddr] = useState("");
+        const [description, setDescription] = useState("");
+        const [rows, setRows] = useState(3);
+        const [cols, setCols] = useState(4);
+        const [total, setTotal] = useState(12);
+        const [price, setPrice] = useState(1000);
+        const [operatingHours, setOperatingHours] = useState("24시간");
+        const [image, setImage] = useState("");
+        const [imagePreview, setImagePreview] = useState("");
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState("");
+
+        // rows, cols 변경 시 total 자동 계산
+        useEffect(() => {
+          setTotal(rows * cols);
+        }, [rows, cols]);
+
+        useEffect(() => {
+          if (!user) {
+            onNav("login");
+          }
+          if (data?.type) {
+            setType(data.type);
+          }
+        }, [user, data]);
+
+        const handleImageChange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64String = reader.result;
+              setImage(base64String);
+              setImagePreview(base64String);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+
+        const handleRegister = async () => {
+          if (!name || !addr) {
+            setError("이름과 주소를 입력해주세요.");
+            return;
+          }
+
+          try {
+            setLoading(true);
+            setError("");
+            const endpoint = type === "ev" ? "/ev-stations" : "/parking-spots";
+            const payload = {
+              name,
+              address: addr,
+              description,
+              rows: parseInt(rows),
+              cols: parseInt(cols),
+              total: parseInt(total),
+              available: parseInt(total),
+              operating_hours: operatingHours,
+              image: image || "",
+            };
+
+            if (type === "ev") {
+              payload.price_per_kwh = parseInt(price);
+            } else {
+              payload.price_per_hour = parseInt(price);
+            }
+
+            const result = await apiCall(endpoint, {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+            onNav("registerComplete", { name, addr, result, type });
+          } catch (error) {
+            setError("등록 실패: " + error.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        if (!user) return null;
+
+        return (
+          <div className="page register">
+            <h2>장소 등록하기</h2>
+            <div className="card">
+              {error && (
+                <div className="error-message">
+                  <span className="material-icons">error</span>
+                  {error}
+                </div>
+              )}
+              <label>
+                장소 유형
+                <div className="type-selector">
+                  <button
+                    type="button"
+                    className={type === "parking" ? "active" : ""}
+                    onClick={() => setType("parking")}
+                    disabled={loading}
+                  >
+                    <span className="material-icons">local_parking</span>
+                    주차장
+                  </button>
+                  <button
+                    type="button"
+                    className={type === "ev" ? "active" : ""}
+                    onClick={() => setType("ev")}
+                    disabled={loading}
+                  >
+                    <span className="material-icons">ev_station</span>
+                    충전소
+                  </button>
+                </div>
+              </label>
+              <label>
+                {type === "ev" ? "충전소" : "주차장"} 이름
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  placeholder={`${
+                    type === "ev" ? "충전소" : "주차장"
+                  } 이름을 입력하세요`}
+                />
+              </label>
+              <label>
+                주소
+                <input
+                  value={addr}
+                  onChange={(e) => setAddr(e.target.value)}
+                  disabled={loading}
+                  placeholder="주소를 입력하세요"
+                />
+              </label>
+              <label>
+                행렬 구성
+                <div className="grid-input-group">
+                  <div className="grid-input-item">
+                    <span>행 (rows)</span>
+                    <input
+                      type="number"
+                      value={rows}
+                      onChange={(e) => setRows(e.target.value)}
+                      disabled={loading}
+                      min="1"
+                    />
+                  </div>
+                  <div className="grid-input-item">
+                    <span>열 (cols)</span>
+                    <input
+                      type="number"
+                      value={cols}
+                      onChange={(e) => setCols(e.target.value)}
+                      disabled={loading}
+                      min="1"
+                    />
+                  </div>
+                </div>
+                <p className="grid-info">
+                  총 {total}개 ({rows}행 × {cols}열)
+                </p>
+              </label>
+              <label>
+                {type === "ev" ? "1kWh당 요금 (원)" : "1시간당 요금 (원)"}
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  disabled={loading}
+                  min="0"
+                />
+              </label>
+              <label>
+                운영시간
+                <input
+                  value={operatingHours}
+                  onChange={(e) => setOperatingHours(e.target.value)}
+                  disabled={loading}
+                  placeholder="예: 24시간, 08:00-22:00"
+                />
+              </label>
+              <label>
+                설명
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="간단한 설명 또는 규칙"
+                  disabled={loading}
+                  rows="3"
+                />
+              </label>
+              <label>
+                사진 업로드
+                <div className="image-upload">
+                  {imagePreview ? (
+                    <div className="image-preview">
+                      <img src={imagePreview} alt="Preview" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImage("");
+                          setImagePreview("");
+                        }}
+                        className="remove-image"
+                      >
+                        <span className="material-icons">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        disabled={loading}
+                        style={{ display: "none" }}
+                        id="image-upload"
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="image-upload-label"
+                      >
+                        <span className="material-icons">photo_camera</span>
+                        사진 선택
+                      </label>
+                    </>
+                  )}
+                  {imagePreview && (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        disabled={loading}
+                        style={{ display: "none" }}
+                        id="image-upload-change"
+                      />
+                      <label
+                        htmlFor="image-upload-change"
+                        className="image-upload-label"
+                      >
+                        <span className="material-icons">edit</span>
+                        사진 변경
+                      </label>
+                    </>
+                  )}
+                </div>
+              </label>
+              <div className="actions">
+                <button onClick={() => onNav("market")} disabled={loading}>
+                  취소
+                </button>
+                <button
+                  className="primary"
+                  onClick={handleRegister}
+                  disabled={loading}
+                >
+                  {loading ? "등록 중..." : "등록하기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const RegisterComplete = ({ info, onNav }) => {
+        const typeName = info?.type === "ev" ? "충전소" : "주차장";
+        return (
+          <div className="page register-complete">
+            <div className="center-card">
+              <h3>{typeName} 등록이 완료되었습니다!</h3>
+              <p>{info?.name || `${typeName} 이름 없음`}</p>
+              <div className="actions">
+                <button onClick={() => onNav("market")}>마켓으로</button>
+                <button className="primary" onClick={() => onNav("manage")}>
+                  내 장소 관리
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Manage = ({ onNav }) => {
+        const { user } = useAuth();
+        const [parkingSpots, setParkingSpots] = useState([]);
+        const [evStations, setEvStations] = useState([]);
+        const [editingId, setEditingId] = useState(null);
+        const [editingType, setEditingType] = useState(null);
+        const [editName, setEditName] = useState("");
+        const [editAddr, setEditAddr] = useState("");
+        const [editDescription, setEditDescription] = useState("");
+        const [editPrice, setEditPrice] = useState("");
+        const [editOperatingHours, setEditOperatingHours] = useState("");
+        const [editImage, setEditImage] = useState("");
+        const [imagePreview, setImagePreview] = useState("");
+        const [loading, setLoading] = useState(true);
+        const [deleteConfirm, setDeleteConfirm] = useState(null);
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          if (!user) {
+            onNav("login");
+          } else {
+            loadMyPlaces();
+          }
+        }, [user]);
+
+        const loadMyPlaces = async () => {
+          try {
+            setLoading(true);
+            const [parkingData, evData] = await Promise.all([
+              apiCall("/my-parking-spots"),
+              apiCall("/my-ev-stations"),
+            ]);
+            setParkingSpots(parkingData.spots || []);
+            setEvStations(evData.stations || []);
+          } catch (error) {
+            console.error("Failed to load places:", error);
+            setParkingSpots([]);
+            setEvStations([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleEdit = (item, type) => {
+          setEditingId(item.id);
+          setEditingType(type);
+          setEditName(item.name);
+          setEditAddr(item.address);
+          setEditDescription(item.description || "");
+          setEditPrice(
+            type === "ev" ? item.price_per_kwh : item.price_per_hour
+          );
+          setEditOperatingHours(item.operating_hours || "24시간");
+          setEditImage(item.image || "");
+          setImagePreview(item.image || "");
+        };
+
+        const handleImageChange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64String = reader.result;
+              setEditImage(base64String);
+              setImagePreview(base64String);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+
+        const handleSave = async (id, type) => {
+          try {
+            const endpoint =
+              type === "ev" ? `/ev-stations/${id}` : `/parking-spots/${id}`;
+            const payload = {
+              name: editName,
+              address: editAddr,
+              description: editDescription,
+              operating_hours: editOperatingHours,
+              image: editImage || "",
+            };
+
+            if (type === "ev") {
+              payload.price_per_kwh = parseInt(editPrice);
+            } else {
+              payload.price_per_hour = parseInt(editPrice);
+            }
+
+            await apiCall(endpoint, {
+              method: "PUT",
+              body: JSON.stringify(payload),
+            });
+            await loadMyPlaces();
+            handleCancel();
+          } catch (error) {
+            setError("수정 실패: " + error.message);
+          }
+        };
+
+        const handleCancel = () => {
+          setEditingId(null);
+          setEditingType(null);
+          setEditName("");
+          setEditAddr("");
+          setEditDescription("");
+          setEditPrice("");
+          setEditOperatingHours("");
+          setEditImage("");
+          setImagePreview("");
+        };
+
+        const handleDelete = async (id, name, type) => {
+          setDeleteConfirm({ id, name, type });
+        };
+
+        const confirmDelete = async () => {
+          if (!deleteConfirm) return;
+          try {
+            const endpoint =
+              deleteConfirm.type === "ev"
+                ? `/ev-stations/${deleteConfirm.id}`
+                : `/parking-spots/${deleteConfirm.id}`;
+            await apiCall(endpoint, { method: "DELETE" });
+            await loadMyPlaces();
+            setDeleteConfirm(null);
+          } catch (error) {
+            setError("삭제 실패: " + error.message);
+            setDeleteConfirm(null);
+          }
+        };
+
+        if (!user) return null;
+
+        const allPlaces = [
+          ...parkingSpots.map((p) => ({ ...p, placeType: "parking" })),
+          ...evStations.map((s) => ({ ...s, placeType: "ev" })),
+        ];
+
+        return (
+          <div className="page manage">
+            <h2>장소 관리하기</h2>
+            {error && (
+              <div className="error-message">
+                <span className="material-icons">error</span>
+                {error}
+                <button
+                  onClick={() => setError("")}
+                  className="error-close"
+                  title="닫기"
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            )}
+            {deleteConfirm && (
+              <div className="confirm-dialog-overlay">
+                <div className="confirm-dialog">
+                  <h3>삭제 확인</h3>
+                  <p>{deleteConfirm.name}을(를) 삭제하시겠습니까?</p>
+                  <div className="confirm-actions">
+                    <button onClick={() => setDeleteConfirm(null)}>취소</button>
+                    <button className="primary" onClick={confirmDelete}>
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {loading ? (
+              <p>로딩 중...</p>
+            ) : allPlaces.length === 0 ? (
+              <p>등록된 장소가 없습니다.</p>
+            ) : (
+              <div className="list">
+                {allPlaces.map((p) => (
+                  <div className="manage-item" key={`${p.placeType}-${p.id}`}>
+                    {editingId === p.id && editingType === p.placeType ? (
+                      <div className="edit-form">
+                        <div className="edit-form-header">
+                          <span className="material-icons">
+                            {p.placeType === "ev"
+                              ? "ev_station"
+                              : "local_parking"}
+                          </span>
+                          <span>
+                            {p.placeType === "ev" ? "충전소" : "주차장"} 수정
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="이름"
+                        />
+                        <input
+                          type="text"
+                          value={editAddr}
+                          onChange={(e) => setEditAddr(e.target.value)}
+                          placeholder="주소"
+                        />
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          placeholder="설명"
+                          rows="2"
+                        />
+                        <div className="edit-form-row">
+                          <input
+                            type="number"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(e.target.value)}
+                            placeholder={
+                              p.placeType === "ev"
+                                ? "1kWh당 요금"
+                                : "1시간당 요금"
+                            }
+                          />
+                          <input
+                            type="text"
+                            value={editOperatingHours}
+                            onChange={(e) =>
+                              setEditOperatingHours(e.target.value)
+                            }
+                            placeholder="운영시간"
+                          />
+                        </div>
+                        <div className="image-upload">
+                          {imagePreview ? (
+                            <>
+                              <div className="image-preview">
+                                <img src={imagePreview} alt="Preview" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditImage("");
+                                    setImagePreview("");
+                                  }}
+                                  className="remove-image"
+                                >
+                                  <span className="material-icons">close</span>
+                                </button>
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                style={{ display: "none" }}
+                                id={`edit-image-change-${p.id}`}
+                              />
+                              <label
+                                htmlFor={`edit-image-change-${p.id}`}
+                                className="image-upload-label"
+                              >
+                                <span className="material-icons">edit</span>
+                                사진 변경
+                              </label>
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                style={{ display: "none" }}
+                                id={`edit-image-${p.id}`}
+                              />
+                              <label
+                                htmlFor={`edit-image-${p.id}`}
+                                className="image-upload-label"
+                              >
+                                <span className="material-icons">
+                                  photo_camera
+                                </span>
+                                사진 선택
+                              </label>
+                            </>
+                          )}
+                        </div>
+                        <div className="edit-actions">
+                          <button onClick={() => handleSave(p.id, p.placeType)}>
+                            저장
+                          </button>
+                          <button onClick={handleCancel}>취소</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="manage-item-content">
+                          <div className="manage-item-header">
+                            <span className="material-icons manage-type-icon">
+                              {p.placeType === "ev"
+                                ? "ev_station"
+                                : "local_parking"}
+                            </span>
+                            <div>
+                              <div className="manage-name">{p.name}</div>
+                              <div className="manage-addr">{p.address}</div>
+                              {p.image && (
+                                <img
+                                  src={p.image}
+                                  alt={p.name}
+                                  className="manage-item-image"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="actions">
+                          <button onClick={() => handleEdit(p, p.placeType)}>
+                            수정
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDelete(p.id, p.name, p.placeType)
+                            }
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const Community = ({ onNav }) => {
+        const { user } = useAuth();
+        const [posts, setPosts] = useState([]);
+        const [popularPosts, setPopularPosts] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [currentPage, setCurrentPage] = useState(1);
+        const [totalCount, setTotalCount] = useState(0);
+        const perPage = 10;
+
+        useEffect(() => {
+          loadPosts();
+          loadPopularPosts();
+        }, [currentPage]);
+
+        const loadPosts = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall(
+              `/posts?page=${currentPage}&per_page=${perPage}`
+            );
+            setPosts(data.posts || []);
+            setTotalCount(data.count || 0);
+          } catch (error) {
+            console.error("Failed to load posts:", error);
+            setPosts([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const loadPopularPosts = async () => {
+          try {
+            const data = await apiCall("/posts/popular?limit=5");
+            setPopularPosts(data.posts || []);
+          } catch (error) {
+            console.error("Failed to load popular posts:", error);
+            setPopularPosts([]);
+          }
+        };
+
+        const handleLike = async (postId, e) => {
+          e.stopPropagation();
+          if (!user) {
+            onNav("login");
+            return;
+          }
+
+          try {
+            const result = await apiCall(`/posts/${postId}/like`, {
+              method: "POST",
+            });
+            // 좋아요 상태 업데이트
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === postId
+                  ? { ...p, likes: result.likes, is_liked: result.is_liked }
+                  : p
+              )
+            );
+            // 인기 게시글도 업데이트
+            setPopularPosts((prev) =>
+              prev.map((p) =>
+                p.id === postId
+                  ? { ...p, likes: result.likes, is_liked: result.is_liked }
+                  : p
+              )
+            );
+            // 인기 게시글 다시 로드
+            await loadPopularPosts();
+          } catch (error) {
+            // 좋아요 실패는 조용히 처리 (사용자 경험)
+            console.error("좋아요 처리 실패:", error);
+          }
+        };
+
+        return (
+          <div className="page community">
+            <div className="community-header">
+              <h2>커뮤니티</h2>
+              <button
+                className="primary write-btn"
+                onClick={() => onNav("write")}
+              >
+                <span className="material-icons">edit</span>
+                <span>글쓰기</span>
+              </button>
+            </div>
+            <div className="community-grid">
+              {loading ? (
+                <p>로딩 중...</p>
+              ) : posts.length === 0 ? (
+                <p>게시글이 없습니다.</p>
+              ) : (
+                <div className="posts">
+                  {posts.map((p) => (
+                    <div
+                      className="post"
+                      key={p.id}
+                      onClick={() => onNav("viewPost", p)}
+                    >
+                      <div className="post-content">
+                        <div className="post-title">{p.title}</div>
+                        <div className="post-meta">
+                          <span className="author">{p.author}</span>
+                          <span className="date">{p.date}</span>
+                        </div>
+                      </div>
+                      <div className="post-stats">
+                        <span className="stat">
+                          <span className="material-icons">visibility</span>
+                          {p.views || 0}
+                        </span>
+                        <button
+                          className={`stat like-btn ${
+                            p.is_liked ? "liked" : ""
+                          }`}
+                          onClick={(e) => handleLike(p.id, e)}
+                          title={p.is_liked ? "좋아요 취소" : "좋아요"}
+                        >
+                          <span className="material-icons">
+                            {p.is_liked ? "favorite" : "favorite_border"}
+                          </span>
+                          {p.likes || 0}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {totalCount > perPage && (
+                <div className="pagination">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    이전
+                  </button>
+                  <span>
+                    {currentPage} / {Math.ceil(totalCount / perPage)}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) =>
+                        Math.min(Math.ceil(totalCount / perPage), p + 1)
+                      )
+                    }
+                    disabled={currentPage >= Math.ceil(totalCount / perPage)}
+                  >
+                    다음
+                  </button>
+                </div>
+              )}
+              <aside className="side">
+                <div className="side-card">
+                  <h4>인기 게시글</h4>
+                  {popularPosts.length === 0 ? (
+                    <p>인기 게시글이 없습니다.</p>
+                  ) : (
+                    <div className="popular-posts">
+                      {popularPosts.map((p) => (
+                        <div
+                          className="popular-item"
+                          key={p.id}
+                          onClick={() => onNav("viewPost", p)}
+                        >
+                          <span className="material-icons">
+                            local_fire_department
+                          </span>
+                          {p.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {user && (
+                  <button
+                    className="secondary-btn"
+                    onClick={() => onNav("managePosts")}
+                  >
+                    내 글 관리
+                  </button>
+                )}
+              </aside>
+            </div>
+          </div>
+        );
+      };
+
+      const WriteSuccess = ({ data, onNav }) => {
+        return (
+          <div className="page success-page write-success">
+            <div className="success-animation">
+              <div className="success-icon-wrapper">
+                <span className="material-icons success-check">
+                  check_circle
+                </span>
+              </div>
+              <h2>게시글이 등록되었습니다!</h2>
+              <p>{data?.post?.title || "게시글"}</p>
+              <div className="success-actions">
+                <button className="primary" onClick={() => onNav("community")}>
+                  커뮤니티로
+                </button>
+                <button onClick={() => onNav("viewPost", data?.post)}>
+                  게시글 보기
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Write = ({ onNav }) => {
+        const { user } = useAuth();
+        const [title, setTitle] = useState("");
+        const [content, setContent] = useState("");
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          if (!user) {
+            onNav("login");
+          }
+        }, [user]);
+
+        const handleSubmit = async () => {
+          if (!title || !content) {
+            setError("제목과 내용을 입력해주세요.");
+            return;
+          }
+
+          try {
+            setLoading(true);
+            setError("");
+            const result = await apiCall("/posts", {
+              method: "POST",
+              body: JSON.stringify({ title, content }),
+            });
+            onNav("writeSuccess", { post: result });
+          } catch (error) {
+            setError("등록 실패: " + error.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        if (!user) return null;
+
+        return (
+          <div className="page write">
+            <div className="write-header">
+              <h2>글쓰기</h2>
+              <p className="write-subtitle">커뮤니티에 글을 작성해보세요</p>
+            </div>
+            <div className="card">
+              {error && (
+                <div className="error-message">
+                  <span className="material-icons">error</span>
+                  {error}
+                </div>
+              )}
+              <label>
+                <span className="label-icon">
+                  <span className="material-icons">title</span>
+                  제목
+                </span>
+                <input
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
+                  placeholder="제목을 입력하세요"
+                />
+              </label>
+              <label>
+                <span className="label-icon">
+                  <span className="material-icons">description</span>
+                  내용
+                </span>
+                <textarea
+                  value={content}
+                  onChange={(e) => {
+                    setContent(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
+                  placeholder="내용을 입력하세요"
+                  rows="12"
+                />
+              </label>
+              <div className="actions">
+                <button onClick={() => onNav("community")} disabled={loading}>
+                  취소
+                </button>
+                <button
+                  className="primary"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? "등록 중..." : "등록하기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const ViewPost = ({ data, onNav }) => {
+        const { user } = useAuth();
+        const [post, setPost] = useState(data);
+        const [comments, setComments] = useState([]);
+        const [newComment, setNewComment] = useState("");
+        const [showCommentForm, setShowCommentForm] = useState(false);
+        const [loading, setLoading] = useState(!data);
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          if (data && data.id) {
+            loadPost(data.id);
+          }
+        }, [data]);
+
+        const loadPost = async (id) => {
+          try {
+            setLoading(true);
+            const postData = await apiCall(`/posts/${id}`);
+            setPost(postData);
+            setComments(postData.comments || []);
+          } catch (error) {
+            console.error("Failed to load post:", error);
+            setPost(null);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        if (!post && !loading)
+          return (
+            <div className="page">
+              <p>게시글이 없습니다.</p>
+            </div>
+          );
+
+        if (loading) {
+          return (
+            <div className="page">
+              <p>로딩 중...</p>
+            </div>
+          );
+        }
+
+        const handleLike = async () => {
+          if (!user) {
+            onNav("login");
+            return;
+          }
+
+          try {
+            const result = await apiCall(`/posts/${post.id}/like`, {
+              method: "POST",
+            });
+            setPost({
+              ...post,
+              likes: result.likes,
+              is_liked: result.is_liked,
+            });
+          } catch (error) {
+            console.error("좋아요 처리 실패:", error);
+          }
+        };
+
+        const handleAddComment = async () => {
+          if (!newComment.trim()) {
+            setError("댓글을 입력해주세요.");
+            return;
+          }
+
+          if (!user) {
+            onNav("login");
+            return;
+          }
+
+          try {
+            setError("");
+            const comment = await apiCall(`/posts/${post.id}/comments`, {
+              method: "POST",
+              body: JSON.stringify({ content: newComment }),
+            });
+            setComments([...comments, comment]);
+            setNewComment("");
+            setShowCommentForm(false);
+          } catch (error) {
+            setError("댓글 작성 실패: " + error.message);
+          }
+        };
+
+        return (
+          <div className="page viewpost">
+            <div className="post-view-header">
+              <button className="back-btn" onClick={() => onNav("community")}>
+                <span className="material-icons">arrow_back</span>
+                목록으로
+              </button>
+            </div>
+            {error && (
+              <div className="error-message">
+                <span className="material-icons">error</span>
+                {error}
+                <button
+                  onClick={() => setError("")}
+                  className="error-close"
+                  title="닫기"
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            )}
+            <div className="post-view-card">
+              <div className="post-view-title">{post.title}</div>
+              <div className="post-view-meta">
+                <div className="post-view-author">
+                  <span className="material-icons">person</span>
+                  {post.author}
+                </div>
+                <div className="post-view-date">
+                  <span className="material-icons">schedule</span>
+                  {post.date}
+                </div>
+                <div className="post-view-stats">
+                  <span className="stat">
+                    <span className="material-icons">visibility</span>
+                    {post.views || 0}
+                  </span>
+                  <button
+                    className={`stat like-btn ${post.is_liked ? "liked" : ""}`}
+                    onClick={handleLike}
+                    title={post.is_liked ? "좋아요 취소" : "좋아요"}
+                  >
+                    <span className="material-icons">
+                      {post.is_liked ? "favorite" : "favorite_border"}
+                    </span>
+                    {post.likes || 0}
+                  </button>
+                </div>
+              </div>
+              <div className="post-view-body">
+                {post.content ? (
+                  post.content
+                    .split("\n")
+                    .map((line, i) => <p key={i}>{line}</p>)
+                ) : (
+                  <p>내용이 없습니다.</p>
+                )}
+              </div>
+
+              <div className="comments-section">
+                <div className="comments-header">
+                  <h3>댓글 ({comments.length})</h3>
+                  <button
+                    className="comment-write-btn"
+                    onClick={() => setShowCommentForm(!showCommentForm)}
+                  >
+                    <span className="material-icons">edit</span>
+                    댓글 작성
+                  </button>
+                </div>
+
+                {showCommentForm && (
+                  <div className="comment-form">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => {
+                        setNewComment(e.target.value);
+                        setError("");
+                      }}
+                      placeholder="댓글을 입력하세요..."
+                      rows="3"
+                    />
+                    <div className="comment-form-actions">
+                      <button
+                        onClick={() => {
+                          setShowCommentForm(false);
+                          setNewComment("");
+                        }}
+                      >
+                        취소
+                      </button>
+                      <button className="primary" onClick={handleAddComment}>
+                        등록
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="comments-list">
+                  {comments.map((comment) => (
+                    <div className="comment-item" key={comment.id}>
+                      <div className="comment-author">
+                        <span className="material-icons">account_circle</span>
+                        <span className="author-name">{comment.author}</span>
+                        <span className="comment-date">{comment.date}</span>
+                      </div>
+                      <div className="comment-content">{comment.content}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const ManagePosts = ({ onNav }) => {
+        const { user } = useAuth();
+        const [posts, setPosts] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [deleteConfirm, setDeleteConfirm] = useState(null);
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          if (!user) {
+            onNav("login");
+          } else {
+            loadMyPosts();
+          }
+        }, [user]);
+
+        const loadMyPosts = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall("/my-posts");
+            setPosts(data.posts || []);
+          } catch (error) {
+            console.error("Failed to load posts:", error);
+            setPosts([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleDelete = async (id, title) => {
+          setDeleteConfirm({ id, title });
+        };
+
+        const confirmDelete = async () => {
+          if (!deleteConfirm) return;
+          try {
+            await apiCall(`/posts/${deleteConfirm.id}`, { method: "DELETE" });
+            await loadMyPosts();
+            setDeleteConfirm(null);
+          } catch (error) {
+            setError("삭제 실패: " + error.message);
+            setDeleteConfirm(null);
+          }
+        };
+
+        if (!user) return null;
+
+        return (
+          <div className="page manage-posts">
+            <h2>내 글 관리</h2>
+            {error && (
+              <div className="error-message">
+                <span className="material-icons">error</span>
+                {error}
+                <button
+                  onClick={() => setError("")}
+                  className="error-close"
+                  title="닫기"
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            )}
+            {deleteConfirm && (
+              <div className="confirm-dialog-overlay">
+                <div className="confirm-dialog">
+                  <h3>삭제 확인</h3>
+                  <p>{deleteConfirm.title}을(를) 삭제하시겠습니까?</p>
+                  <div className="confirm-actions">
+                    <button onClick={() => setDeleteConfirm(null)}>취소</button>
+                    <button className="primary" onClick={confirmDelete}>
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {loading ? (
+              <p>로딩 중...</p>
+            ) : posts.length === 0 ? (
+              <p>작성한 글이 없습니다.</p>
+            ) : (
+              <div className="list">
+                {posts.map((m) => (
+                  <div className="manage-item" key={m.id}>
+                    <div>{m.title}</div>
+                    <div className="actions">
+                      <button onClick={() => onNav("write", m)}>수정</button>
+                      <button onClick={() => handleDelete(m.id, m.title)}>
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const Login = ({ onNav }) => {
+        const { login } = useAuth();
+        const [email, setEmail] = useState("");
+        const [pw, setPw] = useState("");
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState("");
+
+        const handleLogin = async () => {
+          if (!email || !pw) {
+            setError("이메일과 비밀번호를 입력해주세요.");
+            return;
+          }
+
+          try {
+            setLoading(true);
+            setError("");
+            const data = await apiCall("/login", {
+              method: "POST",
+              body: JSON.stringify({ email, password: pw }),
+            });
+            login(data.user);
+            onNav("loginSuccess");
+          } catch (error) {
+            setError("로그인 실패: " + error.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return (
+          <div className="page login">
+            <h2>로그인</h2>
+            <div className="card">
+              {error && (
+                <div className="error-message">
+                  <span className="material-icons">error</span>
+                  {error}
+                </div>
+              )}
+              <label>
+                이메일
+                <input
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
+                />
+              </label>
+              <label>
+                비밀번호
+                <input
+                  type="password"
+                  value={pw}
+                  onChange={(e) => {
+                    setPw(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
+                />
+              </label>
+              <div className="actions">
+                <button onClick={() => onNav("home")} disabled={loading}>
+                  취소
+                </button>
+                <button
+                  className="primary"
+                  onClick={handleLogin}
+                  disabled={loading}
+                >
+                  {loading ? "로그인 중..." : "로그인"}
+                </button>
+              </div>
+              <div className="login-footer">
+                <p>
+                  계정이 없으신가요?{" "}
+                  <button className="link-btn" onClick={() => onNav("signup")}>
+                    회원가입
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Signup = ({ onNav }) => {
+        const [email, setEmail] = useState("");
+        const [pw, setPw] = useState("");
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState("");
+
+        const handleSignup = async () => {
+          if (!email || !pw) {
+            setError("이메일과 비밀번호를 입력해주세요.");
+            return;
+          }
+
+          try {
+            setLoading(true);
+            setError("");
+            await apiCall("/signup", {
+              method: "POST",
+              body: JSON.stringify({ email, password: pw }),
+            });
+            onNav("signupSuccess");
+          } catch (error) {
+            setError("회원가입 실패: " + error.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return (
+          <div className="page signup">
+            <h2>회원가입</h2>
+            <div className="card">
+              {error && (
+                <div className="error-message">
+                  <span className="material-icons">error</span>
+                  {error}
+                </div>
+              )}
+              <label>
+                이메일
+                <input
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
+                />
+              </label>
+              <label>
+                비밀번호
+                <input
+                  type="password"
+                  value={pw}
+                  onChange={(e) => {
+                    setPw(e.target.value);
+                    setError("");
+                  }}
+                  disabled={loading}
+                />
+              </label>
+              <div className="actions">
+                <button onClick={() => onNav("home")} disabled={loading}>
+                  취소
+                </button>
+                <button
+                  className="primary"
+                  onClick={handleSignup}
+                  disabled={loading}
+                >
+                  {loading ? "가입 중..." : "가입"}
+                </button>
+              </div>
+              <div className="login-footer">
+                <p>
+                  이미 계정이 있으신가요?{" "}
+                  <button className="link-btn" onClick={() => onNav("login")}>
+                    로그인
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const Splash = ({ onComplete }) => {
+        useEffect(() => {
+          const timer = setTimeout(() => {
+            onComplete();
+          }, 2000);
+          return () => clearTimeout(timer);
+        }, [onComplete]);
+
+        return (
+          <div className="splash-screen">
+            <div className="splash-content">
+              <div className="splash-logo">
+                <div className="splash-logo-circle">P</div>
+                <div className="splash-logo-text">PlinkU</div>
+              </div>
+              <div className="splash-subtitle">주차를 더 편하게</div>
+            </div>
+          </div>
+        );
+      };
+
+      const LoginSuccess = ({ onNav }) => {
+        useEffect(() => {
+          const timer = setTimeout(() => {
+            onNav("home");
+          }, 2000);
+          return () => clearTimeout(timer);
+        }, [onNav]);
+
+        return (
+          <div className="page success-page">
+            <div className="success-animation">
+              <div className="success-icon-wrapper">
+                <span className="material-icons success-check">
+                  check_circle
+                </span>
+              </div>
+              <h2>로그인 완료!</h2>
+              <p>새로운 주차 플랫폼 PlinkU에 오신 것을 환영합니다.</p>
+            </div>
+          </div>
+        );
+      };
+
+      const SignupSuccess = ({ onNav }) => {
+        return (
+          <div className="page success-page signup-success">
+            <div className="success-animation">
+              <div className="success-icon-wrapper">
+                <span className="material-icons success-icon-signup">
+                  directions_car
+                </span>
+              </div>
+              <h2>회원가입 완료!</h2>
+              <p>로그인하고 PlinkU를 시작하세요.</p>
+              <div className="success-actions">
+                <button className="primary" onClick={() => onNav("login")}>
+                  로그인하기
+                </button>
+                <button onClick={() => onNav("home")}>홈으로</button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const FavoritesPage = ({ onNav }) => {
+        const { user } = useAuth();
+        const [favorites, setFavorites] = useState([]);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState("");
+
+        useEffect(() => {
+          if (user) {
+            loadFavorites();
+          } else {
+            onNav("login");
+          }
+        }, [user]);
+
+        const loadFavorites = async () => {
+          try {
+            setLoading(true);
+            const data = await apiCall("/favorites");
+            setFavorites(data.favorites || []);
+          } catch (error) {
+            console.error("Failed to load favorites:", error);
+            setFavorites([]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const removeFavorite = async (id, e) => {
+          e.stopPropagation();
+          try {
+            await apiCall(`/favorites/${id}`, { method: "DELETE" });
+            setFavorites((prev) => prev.filter((f) => f.id !== id));
+          } catch (error) {
+            setError("즐겨찾기 삭제 실패: " + error.message);
+          }
+        };
+
+        if (!user) return null;
+
+        return (
+          <div className="page favorites-page">
+            <h2>즐겨찾는 장소</h2>
+            {error && (
+              <div className="error-message">
+                <span className="material-icons">error</span>
+                {error}
+                <button
+                  onClick={() => setError("")}
+                  className="error-close"
+                  title="닫기"
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            )}
+            {loading ? (
+              <p>로딩 중...</p>
+            ) : favorites.length === 0 ? (
+              <p>즐겨찾는 장소가 없습니다.</p>
+            ) : (
+              <div className="list">
+                {favorites.map((fav) => (
+                  <div className="spot-card" key={fav.id}>
+                    <div className="spot-image">
+                      {fav.image ? (
+                        <img src={fav.image} alt={fav.name} />
+                      ) : (
+                        <div className="image-placeholder">
+                          <span className="material-icons">
+                            {fav.type === "ev" ? "ev_station" : "local_parking"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="spot-info">
+                      <div className="spot-name">
+                        <span className="material-icons favorite-type-icon">
+                          {fav.type === "ev" ? "ev_station" : "local_parking"}
+                        </span>
+                        {fav.name}
+                      </div>
+                      <div className="spot-meta">
+                        {fav.distance ? `${fav.distance}km` : ""} ·{" "}
+                        {fav.type === "ev"
+                          ? `충전기 ${fav.available || 0}대`
+                          : `잔여 ${fav.available || 0}개`}
+                      </div>
+                    </div>
+                    <div className="spot-actions">
+                      <button
+                        className="favorite-btn active"
+                        onClick={(e) => removeFavorite(fav.id, e)}
+                        title="즐겨찾기 해제"
+                      >
+                        <span className="material-icons">star</span>
+                      </button>
+                      <button
+                        onClick={() =>
+                          fav.type === "ev"
+                            ? onNav("evDetail", fav)
+                            : onNav("detail", fav)
+                        }
+                      >
+                        상세보기
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      function Router() {
+        const [route, setRoute] = useState({
+          name: "home",
+          data: null,
+          fromPage: null,
+        });
+        const [showSplash, setShowSplash] = useState(true);
+
+        useEffect(() => {
+          document.title = "PlinkU - " + route.name;
+        }, [route]);
+
+        const nav = (name, data = null, fromPage = null) =>
+          setRoute({ name, data, fromPage });
+
+        if (showSplash) {
+          return <Splash onComplete={() => setShowSplash(false)} />;
+        }
+
+        return (
+          <AuthProvider>
+            <div className="app">
+              <AppHeader onNav={nav} />
+              <div className="container">
+                {route.name === "home" && <Home onNav={nav} />}
+                {route.name === "finder" && <Finder onNav={nav} />}
+                {route.name === "detail" && (
+                  <Detail data={route.data} onNav={nav} />
+                )}
+                {route.name === "reserve" && (
+                  <Reserve
+                    data={route.data}
+                    onNav={nav}
+                    fromPage={route.fromPage}
+                  />
+                )}
+                {route.name === "complete" && (
+                  <Complete info={route.data} onNav={nav} />
+                )}
+                {route.name === "ev" && <EV onNav={nav} />}
+                {route.name === "evDetail" && (
+                  <EVDetail data={route.data} onNav={nav} />
+                )}
+                {route.name === "market" && <Market onNav={nav} />}
+                {route.name === "register" && (
+                  <Register onNav={nav} data={route.data} />
+                )}
+                {route.name === "registerComplete" && (
+                  <RegisterComplete info={route.data} onNav={nav} />
+                )}
+                {route.name === "manage" && <Manage onNav={nav} />}
+                {route.name === "community" && <Community onNav={nav} />}
+                {route.name === "write" && <Write onNav={nav} />}
+                {route.name === "writeSuccess" && (
+                  <WriteSuccess data={route.data} onNav={nav} />
+                )}
+                {route.name === "viewPost" && (
+                  <ViewPost data={route.data} onNav={nav} />
+                )}
+                {route.name === "managePosts" && <ManagePosts onNav={nav} />}
+                {route.name === "login" && <Login onNav={nav} />}
+                {route.name === "loginSuccess" && <LoginSuccess onNav={nav} />}
+                {route.name === "signup" && <Signup onNav={nav} />}
+                {route.name === "signupSuccess" && (
+                  <SignupSuccess onNav={nav} />
+                )}
+                {route.name === "favorites" && <FavoritesPage onNav={nav} />}
+              </div>
+              <footer className="app-footer">
+                © {new Date().getFullYear()} PlinkU · 2025-2 OSS 프로젝트
+              </footer>
+            </div>
+          </AuthProvider>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<Router />);
+    </script>
+  </body>
+</html>
