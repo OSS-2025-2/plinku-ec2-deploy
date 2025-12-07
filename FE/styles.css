@@ -375,7 +375,7 @@ body {
 .favorite-remove-btn {
   background: transparent;
   border: 0;
-  color: #ffd700;
+  color: #ff6b35;
   cursor: pointer;
   padding: 8px;
   display: flex;
@@ -533,7 +533,7 @@ body {
   background: var(--glass);
 }
 .favorite-btn.active {
-  color: #ffd700;
+  color: #ff6b35;
 }
 .favorite-btn .material-icons {
   font-size: 20px;
@@ -663,6 +663,58 @@ label {
 .actions button {
   padding: 12px 24px;
   border-radius: var(--radius-sm);
+}
+
+/* 관리 페이지 액션 버튼 (수정/삭제) */
+.manage-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.manage-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+.manage-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+.manage-action-btn .material-icons {
+  font-size: 20px;
+}
+.manage-action-btn.edit-btn:hover {
+  background: rgba(255, 107, 53, 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.manage-action-btn.delete-btn:hover {
+  background: rgba(220, 53, 69, 0.2);
+  border-color: #dc3545;
+  color: #ff6b6b;
+}
+
+/* 페이지 헤더 with 뒤로가기 */
+.page-header-with-back {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.page-header-with-back h2 {
+  margin: 0;
+  flex: 1;
 }
 
 /* center card for completion */
@@ -825,6 +877,12 @@ label {
   display: grid;
   grid-template-columns: 1fr 280px;
   gap: 24px;
+  align-items: start;
+}
+.posts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .posts {
   display: flex;
@@ -1164,13 +1222,14 @@ label {
 .manage-item {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding: 20px;
   background: var(--panel);
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.05);
   margin-bottom: 16px;
   transition: all 0.2s ease;
+  gap: 16px;
 }
 .manage-item:hover {
   background: var(--card);
@@ -1199,6 +1258,17 @@ label {
   color: var(--muted);
   font-size: 14px;
   margin-bottom: 12px;
+}
+.manage-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 8px;
+}
+.manage-meta .material-icons {
+  font-size: 16px;
 }
 .manage-item-image {
   width: 120px;

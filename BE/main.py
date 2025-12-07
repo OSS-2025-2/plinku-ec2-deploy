@@ -1240,10 +1240,304 @@ def delete_ev_station(station_id):
 
 
 # ============================================================================
+# 더미 데이터 초기화 함수 (시연용)
+# ============================================================================
+
+def init_dummy_data():
+    """
+    시연 영상용 더미 데이터 초기화
+    """
+    # admin 계정 생성
+    admin_id = get_next_id('user')
+    users[admin_id] = {
+        'id': admin_id,
+        'email': 'admin',
+        'password': 'admin',
+        'name': '관리자'
+    }
+    
+    # 한밭대학교 좌표 (대략)
+    hbnu_lat = 36.3733
+    hbnu_lng = 127.3600
+    
+    # 대전 좌표들 (제공된 이미지에 맞춰 수정)
+    daejeon_locations = [
+        {'name': '대전역', 'lat': 36.3322, 'lng': 127.4342, 'address': '대전광역시 동구 동서대로 1689'},
+        {'name': '둔산동', 'lat': 36.3504, 'lng': 127.3845, 'address': '대전광역시 서구 둔산로 100'},
+        {'name': '현충원역', 'lat': 36.3600, 'lng': 127.3800, 'address': '대전광역시 유성구 현충원로'},
+        {'name': '구암역', 'lat': 36.3650, 'lng': 127.3500, 'address': '대전광역시 유성구 구암로'},
+        {'name': '대전 월드컵경기장', 'lat': 36.3200, 'lng': 127.4100, 'address': '대전광역시 유성구 월드컵대로 32'}
+    ]
+    
+    # 1. 한밭대학교 N4 주차장 (4*3 = 12칸)
+    spot1_id = get_next_id('parking_spot')
+    parking_spots[spot1_id] = {
+        'id': spot1_id,
+        'name': '한밭대학교 N4 주차장',
+        'address': '대전광역시 유성구 대학로 201',
+        'distance': 0.5,
+        'available': 10,  # 12칸 중 2칸 예약됨
+        'total': 12,
+        'rows': 4,
+        'cols': 3,
+        'price_per_hour': 1000,
+        'operating_hours': '24시간',
+        'image': 'https://www.hanbat.ac.kr/thumbnail/BBSMSTR_000000000058/920_BBS_201912101118547470.JPG',
+        'is_ev': False,
+        'latitude': hbnu_lat + 0.001,
+        'longitude': hbnu_lng + 0.001,
+        'description': '한밭대학교 N4 건물 인근 주차장입니다.',
+        'owner_id': admin_id
+    }
+    
+    # 2. 한밭대학교 N11 주차장 (5*3 = 15칸)
+    spot2_id = get_next_id('parking_spot')
+    parking_spots[spot2_id] = {
+        'id': spot2_id,
+        'name': '한밭대학교 N11 주차장',
+        'address': '대전광역시 유성구 대학로 201',
+        'distance': 0.3,
+        'available': 12,  # 15칸 중 3칸 예약됨
+        'total': 15,
+        'rows': 5,
+        'cols': 3,
+        'price_per_hour': 1000,
+        'operating_hours': '24시간',
+        'image': 'https://www.hanbat.ac.kr/namo/binary/images/000173/%EA%B5%AD%EB%A6%BD%ED%95%9C%EB%B0%AD%EB%8C%80%ED%95%99%EA%B5%90_%EC%B0%BD%EC%9D%98%ED%98%81%EC%8B%A0%EA%B4%801.jpg',
+        'is_ev': False,
+        'latitude': hbnu_lat + 0.002,
+        'longitude': hbnu_lng + 0.002,
+        'description': '한밭대학교 N11 건물 인근 주차장입니다.',
+        'owner_id': admin_id
+    }
+    
+    # 3. 대전권 주차장 5개 (제공된 이미지에 맞춰 수정)
+    daejeon_parking_data = [
+        {'name': '대전역 주차장', 'rows': 3, 'cols': 4, 'image': 'https://mblogthumb-phinf.pstatic.net/MjAyMDAzMDRfOTEg/MDAxNTgzMzE2NzQ3Njk2.GUl5qod23OhwCfdO-qCCPImuSjAPH9jQaoCacPFCjdkg.642uESNWai-TYtzmNI2l6kRd_VS3yLtx1WH4vdCHvcYg.JPEG.korailblog/%EB%8C%80%EC%A0%84%EC%97%AD_%EA%B9%80%EC%9C%A4%EA%B2%BD_(1).jpg?type=w800'},
+        {'name': '둔산동 공영주차장', 'rows': 3, 'cols': 4, 'image': 'https://cdn.goodmorningcc.com/news/photo/202003/228126_235093_3950.jpg'},
+        {'name': '현충원역 주차장', 'rows': 4, 'cols': 3, 'image': 'https://mblogthumb-phinf.pstatic.net/MjAyMzA5MjBfMjI1/MDAxNjk1MjE2Mjk2OTg1.D8DRsQEHmxZykhErPMiveJO96hRN1qS4XUG5sk3MK30g.l2g1PFK3le_jL_EhCULEtj0Y2QAEMBFZoYNdYZFQ0iIg.JPEG.nono1831/output_1843831556.jpg?type=w800'},
+        {'name': '구암역 주차장', 'rows': 4, 'cols': 3, 'image': 'https://cdn.welfarehello.com/naver-blog/production/yuseonggu/2025-02/223764460670/yuseonggu_223764460670_1.png?f=webp&q=80&w=800'},
+        {'name': '대전 월드컵경기장 주차장', 'rows': 5, 'cols': 3, 'image': 'https://i.namu.wiki/i/d4RugJNwgw19u6tQ0fNecKrg_TiK4REZMlXTBUQ1c45hkHwKl5rQ_a6Dzkan4VKtabiFdZz3xIqGO1cRfMqvFw.webp'}
+    ]
+    
+    for i, (loc, parking_data) in enumerate(zip(daejeon_locations, daejeon_parking_data)):
+        spot_id = get_next_id('parking_spot')
+        rows = parking_data['rows']
+        cols = parking_data['cols']
+        total = rows * cols
+        parking_spots[spot_id] = {
+            'id': spot_id,
+            'name': parking_data['name'],
+            'address': loc['address'],
+            'distance': round(2.0 + i * 0.5, 1),
+            'available': total - (i + 1),  # 몇 개 예약됨
+            'total': total,
+            'rows': rows,
+            'cols': cols,
+            'price_per_hour': 1000 + i * 200,
+            'operating_hours': '24시간',
+            'image': parking_data['image'],
+            'is_ev': i == 1,  # 둔산동만 EV 가능
+            'latitude': loc['lat'],
+            'longitude': loc['lng'],
+            'description': f'{loc["name"]} 인근 주차장입니다.',
+            'owner_id': None  # admin 소유 아님
+        }
+    
+    # 4. 한밭대학교 국제교류관 전기차 충전소 (4*1 = 4칸)
+    ev1_id = get_next_id('ev_station')
+    ev_stations[ev1_id] = {
+        'id': ev1_id,
+        'name': '한밭대학교 국제교류관 전기차 충전소',
+        'address': '대전광역시 유성구 대학로 201',
+        'distance': 0.2,
+        'available': 2,  # 4칸 중 2칸 예약됨
+        'total': 4,
+        'rows': 4,
+        'cols': 1,
+        'price_per_kwh': 200,
+        'operating_hours': '24시간',
+        'image': 'https://www.hanbat.ac.kr/thumbnail/BBSMSTR_000000000058/920_BBS_201912090740019110.jpg',
+        'latitude': hbnu_lat + 0.0005,
+        'longitude': hbnu_lng + 0.0005,
+        'description': '한밭대학교 국제교류관 앞 전기차 충전소입니다.',
+        'owner_id': admin_id
+    }
+    
+    # 5. 대전권 충전소 5개 (제공된 이미지에 맞춰 수정)
+    daejeon_ev_data = [
+        {'name': '대전국립중앙과학관 전기차 충전소', 'rows': 2, 'cols': 2, 'image': 'https://cdn.welfarehello.com/naver-blog/production/storydaejeon/2023-08/223179165734/storydaejeon_223179165734_1.jpg?f=webp&q=80&w=800', 'address': '대전광역시 유성구 대덕대로 481'},
+        {'name': '현충원역 전기차 충전소', 'rows': 2, 'cols': 2, 'image': 'https://mblogthumb-phinf.pstatic.net/MjAyMzA5MjBfMjI1/MDAxNjk1MjE2Mjk2OTg1.D8DRsQEHmxZykhErPMiveJO96hRN1qS4XUG5sk3MK30g.l2g1PFK3le_jL_EhCULEtj0Y2QAEMBFZoYNdYZFQ0iIg.JPEG.nono1831/output_1843831556.jpg?type=w800', 'address': '대전광역시 유성구 현충원로'},
+        {'name': '대전역 전기차 충전소', 'rows': 3, 'cols': 2, 'image': 'https://mblogthumb-phinf.pstatic.net/MjAyMDAzMDRfOTEg/MDAxNTgzMzE2NzQ3Njk2.GUl5qod23OhwCfdO-qCCPImuSjAPH9jQaoCacPFCjdkg.642uESNWai-TYtzmNI2l6kRd_VS3yLtx1WH4vdCHvcYg.JPEG.korailblog/%EB%8C%80%EC%A0%84%EC%97%AD_%EA%B9%80%EC%9C%A4%EA%B2%BD_(1).jpg?type=w800', 'address': '대전광역시 동구 동서대로 1689'},
+        {'name': '구암역 전기차 충전소', 'rows': 2, 'cols': 2, 'image': 'https://cdn.welfarehello.com/naver-blog/production/yuseonggu/2025-02/223764460670/yuseonggu_223764460670_1.png?f=webp&q=80&w=800', 'address': '대전광역시 유성구 구암로'},
+        {'name': '대전 월드컵경기장 전기차 충전소', 'rows': 2, 'cols': 2, 'image': 'https://i.namu.wiki/i/d4RugJNwgw19u6tQ0fNecKrg_TiK4REZMlXTBUQ1c45hkHwKl5rQ_a6Dzkan4VKtabiFdZz3xIqGO1cRfMqvFw.webp', 'address': '대전광역시 유성구 월드컵대로 32'}
+    ]
+    
+    ev_locations = [
+        {'lat': 36.3700, 'lng': 127.3450},  # 대전국립중앙과학관
+        {'lat': 36.3600, 'lng': 127.3800},  # 현충원역
+        {'lat': 36.3322, 'lng': 127.4342},  # 대전역
+        {'lat': 36.3650, 'lng': 127.3500},  # 구암역
+        {'lat': 36.3200, 'lng': 127.4100}   # 대전 월드컵경기장
+    ]
+    
+    for i, (ev_data, ev_loc) in enumerate(zip(daejeon_ev_data, ev_locations)):
+        ev_id = get_next_id('ev_station')
+        rows = ev_data['rows']
+        cols = ev_data['cols']
+        total = rows * cols
+        ev_stations[ev_id] = {
+            'id': ev_id,
+            'name': ev_data['name'],
+            'address': ev_data['address'],
+            'distance': round(1.5 + i * 0.4, 1),
+            'available': total - (i % 2),  # 몇 개 예약됨
+            'total': total,
+            'rows': rows,
+            'cols': cols,
+            'price_per_kwh': 180 + i * 20,
+            'operating_hours': '24시간',
+            'image': ev_data['image'],
+            'latitude': ev_loc['lat'],
+            'longitude': ev_loc['lng'],
+            'description': f'{ev_data["name"]}입니다.',
+            'owner_id': None  # admin 소유 아님
+        }
+    
+    # 6. 예약 데이터 생성 (admin 계정 예약 2~3개만)
+    # N4 주차장 예약 2개
+    reserved_key1 = f"parking:{spot1_id}"
+    reserved_slots[reserved_key1] = {0, 5}  # 2개 슬롯 예약
+    for slot in [0, 5]:
+        res_id = get_next_id('reservation')
+        start_time = datetime.now() + timedelta(hours=1)
+        end_time = start_time + timedelta(hours=2)
+        reservations[res_id] = {
+            'id': res_id,
+            'user_id': admin_id,
+            'place_id': spot1_id,
+            'place_type': 'parking',
+            'slot': slot,
+            'start_time': start_time.isoformat(),
+            'end_time': end_time.isoformat(),
+            'created_at': datetime.now().isoformat()
+        }
+    
+    # 국제교류관 충전소 예약 1개
+    reserved_key3 = f"ev:{ev1_id}"
+    reserved_slots[reserved_key3] = {1}  # 1개 슬롯 예약
+    res_id = get_next_id('reservation')
+    start_time = datetime.now() + timedelta(hours=3)
+    end_time = start_time + timedelta(hours=1)
+    reservations[res_id] = {
+        'id': res_id,
+        'user_id': admin_id,
+        'place_id': ev1_id,
+        'place_type': 'ev',
+        'slot': 1,
+        'start_time': start_time.isoformat(),
+        'end_time': end_time.isoformat(),
+        'created_at': datetime.now().isoformat()
+    }
+    
+    # N4 주차장 available 업데이트 (3칸 -> 2칸 예약)
+    parking_spots[spot1_id]['available'] = 10  # 12칸 중 2칸 예약됨
+    # 국제교류관 충전소 available 업데이트 (2칸 -> 1칸 예약)
+    ev_stations[ev1_id]['available'] = 3  # 4칸 중 1칸 예약됨
+    
+    # 7. admin 즐겨찾기 추가
+    favorites[admin_id] = {spot1_id, spot2_id, ev1_id}
+    
+    # 8. 커뮤니티 게시글 20개
+    post_titles = [
+        '한밭대 주차장 추천합니다!',
+        'N4 주차장 이용 후기',
+        '전기차 충전소 위치 공유',
+        '주차 요금 너무 비싸네요',
+        '주차장 찾기 어려워요',
+        'EV 충전소 이용 팁',
+        '한밭대 주변 주차장 정보',
+        '주차 예약 시스템 사용법',
+        '전기차 충전 시간은 얼마나 걸리나요?',
+        '주차장 혼잡도 체크 방법',
+        'N11 주차장 추천해요',
+        '국제교류관 충전소 후기',
+        '주차장 예약 취소 방법',
+        '대전역 주변 주차장 추천',
+        '전기차 충전 요금 비교',
+        '주차장 이용 시 주의사항',
+        '한밭대 학생 할인 혜택',
+        '주차장 찾는 팁',
+        'EV 충전소 이용 후기',
+        '주차 예약 시스템 개선 제안'
+    ]
+    
+    post_contents = [
+        '한밭대학교 주변 주차장을 이용해보니 정말 편리하네요!',
+        'N4 주차장은 접근성이 좋고 가격도 합리적입니다.',
+        '전기차 충전소 위치를 공유합니다. 참고하세요!',
+        '주차 요금이 좀 비싼 것 같아요. 다른 곳은 어떤가요?',
+        '주차장을 찾기가 너무 어려워요. 안내가 필요합니다.',
+        'EV 충전소 이용 시 충전 시간은 보통 30분~1시간 정도 걸립니다.',
+        '한밭대 주변 주차장 정보를 정리해봤습니다.',
+        '주차 예약 시스템 사용법을 알려드립니다.',
+        '전기차 충전 시간은 배터리 용량과 충전 속도에 따라 다릅니다.',
+        '주차장 혼잡도는 실시간으로 확인할 수 있습니다.',
+        'N11 주차장을 추천합니다. 넓고 깨끗해요!',
+        '국제교류관 충전소는 접근성이 좋습니다.',
+        '주차장 예약 취소는 앱에서 간단하게 할 수 있습니다.',
+        '대전역 주변 주차장 중 추천할 만한 곳이 있나요?',
+        '전기차 충전 요금을 비교해봤습니다.',
+        '주차장 이용 시 주의사항을 공유합니다.',
+        '한밭대 학생은 할인 혜택을 받을 수 있습니다.',
+        '주차장을 쉽게 찾는 팁을 알려드립니다.',
+        'EV 충전소 이용 후기를 공유합니다.',
+        '주차 예약 시스템 개선 제안을 드립니다.'
+    ]
+    
+    for i in range(20):
+        post_id = get_next_id('post')
+        now = datetime.now() - timedelta(days=i, hours=i % 24)
+        views = 10 + i * 5 + (i % 3) * 10  # 조회수 다양하게
+        likes_count = i % 7  # 좋아요 수 다양하게
+        
+        posts[post_id] = {
+            'id': post_id,
+            'title': post_titles[i],
+            'content': post_contents[i],
+            'author': '관리자' if i < 5 else f'사용자{i-4}',
+            'author_id': admin_id if i < 5 else None,
+            'date': now.strftime('%m/%d'),
+            'views': views,
+            'likes': likes_count,
+            'created_at': now
+        }
+        
+        # 좋아요 데이터 생성
+        if likes_count > 0:
+            post_likes[post_id] = set()
+            # admin이 일부 좋아요
+            if i % 3 == 0:
+                post_likes[post_id].add(admin_id)
+                likes_count -= 1
+            # 가상의 사용자들이 좋아요
+            for j in range(likes_count):
+                post_likes[post_id].add(100 + j)  # 가상 사용자 ID
+    
+    print("더미 데이터 초기화 완료!")
+    print(f"Admin 계정: id={admin_id}, email=admin, password=admin")
+    print(f"주차장: {len(parking_spots)}개")
+    print(f"충전소: {len(ev_stations)}개")
+    print(f"게시글: {len(posts)}개")
+    print(f"예약: {len(reservations)}개")
+
+
+# ============================================================================
 # 애플리케이션 초기화
 # ============================================================================
 
 if __name__ == '__main__':
-    # 더미 데이터 없이 빈 상태로 시작
+    # 시연용 더미 데이터 초기화
+    init_dummy_data()
     app.run(debug=True, port=5000)
 

@@ -461,7 +461,7 @@
         );
       };
 
-      const Detail = ({ data, onNav }) => {
+      const Detail = ({ data, onNav, goBack }) => {
         const { user } = useAuth();
         const [spot, setSpot] = useState(data);
         const [loading, setLoading] = useState(!data);
@@ -542,7 +542,9 @@
                   </p>
                 )}
                 <div className="actions">
-                  <button onClick={() => onNav("finder")}>뒤로</button>
+                  <button onClick={goBack || (() => onNav("finder"))}>
+                    뒤로
+                  </button>
                   <button
                     className="primary"
                     onClick={() => {
@@ -562,7 +564,7 @@
         );
       };
 
-      const Reserve = ({ data, onNav, fromPage }) => {
+      const Reserve = ({ data, onNav, fromPage, goBack }) => {
         const { user } = useAuth();
         const [startDate, setStartDate] = useState("");
         const [startTime, setStartTime] = useState("");
@@ -809,7 +811,9 @@
                   )}
                 </div>
                 <div className="actions">
-                  <button onClick={() => onNav(getBackRoute(), data)}>
+                  <button
+                    onClick={goBack || (() => onNav(getBackRoute(), data))}
+                  >
                     취소
                   </button>
                   <button
@@ -900,7 +904,7 @@
         );
       };
 
-      const EVDetail = ({ data, onNav }) => {
+      const EVDetail = ({ data, onNav, goBack }) => {
         const { user } = useAuth();
         const [station, setStation] = useState(data);
         const [loading, setLoading] = useState(!data);
@@ -981,7 +985,7 @@
                   </p>
                 )}
                 <div className="actions">
-                  <button onClick={() => onNav("ev")}>뒤로</button>
+                  <button onClick={goBack || (() => onNav("ev"))}>뒤로</button>
                   <button
                     className="primary"
                     onClick={() => {
@@ -1252,7 +1256,8 @@
           try {
             setLoading(true);
             setError("");
-            const endpoint = type === "ev" ? "/api/ev-stations" : "/api/parking-spots";
+            const endpoint =
+              type === "ev" ? "/api/ev-stations" : "/api/parking-spots";
             const payload = {
               name,
               address: addr,
@@ -1487,7 +1492,7 @@
         );
       };
 
-      const Manage = ({ onNav }) => {
+      const Manage = ({ onNav, goBack }) => {
         const { user } = useAuth();
         const [parkingSpots, setParkingSpots] = useState([]);
         const [evStations, setEvStations] = useState([]);
@@ -1560,7 +1565,9 @@
         const handleSave = async (id, type) => {
           try {
             const endpoint =
-              type === "ev" ? `/ev-stations/${id}` : `/parking-spots/${id}`;
+              type === "ev"
+                ? `/api/ev-stations/${id}`
+                : `/api/parking-spots/${id}`;
             const payload = {
               name: editName,
               address: editAddr,
@@ -1627,7 +1634,16 @@
 
         return (
           <div className="page manage">
-            <h2>장소 관리하기</h2>
+            <div className="page-header-with-back">
+              <button
+                className="back-btn"
+                onClick={goBack || (() => onNav("mypage"))}
+              >
+                <span className="material-icons">arrow_back</span>
+                <span>뒤로</span>
+              </button>
+              <h2>장소 관리하기</h2>
+            </div>
             {error && (
               <div className="error-message">
                 <span className="material-icons">error</span>
@@ -1794,16 +1810,22 @@
                             </div>
                           </div>
                         </div>
-                        <div className="actions">
-                          <button onClick={() => handleEdit(p, p.placeType)}>
-                            수정
+                        <div className="manage-actions">
+                          <button
+                            className="manage-action-btn edit-btn"
+                            onClick={() => handleEdit(p, p.placeType)}
+                            title="수정"
+                          >
+                            <span className="material-icons">edit</span>
                           </button>
                           <button
+                            className="manage-action-btn delete-btn"
                             onClick={() =>
                               handleDelete(p.id, p.name, p.placeType)
                             }
+                            title="삭제"
                           >
-                            삭제
+                            <span className="material-icons">delete</span>
                           </button>
                         </div>
                       </>
@@ -1904,70 +1926,72 @@
               </button>
             </div>
             <div className="community-grid">
-              {loading ? (
-                <p>로딩 중...</p>
-              ) : posts.length === 0 ? (
-                <p>게시글이 없습니다.</p>
-              ) : (
-                <div className="posts">
-                  {posts.map((p) => (
-                    <div
-                      className="post"
-                      key={p.id}
-                      onClick={() => onNav("viewPost", p)}
-                    >
-                      <div className="post-content">
-                        <div className="post-title">{p.title}</div>
-                        <div className="post-meta">
-                          <span className="author">{p.author}</span>
-                          <span className="date">{p.date}</span>
+              <div className="posts-container">
+                {loading ? (
+                  <p>로딩 중...</p>
+                ) : posts.length === 0 ? (
+                  <p>게시글이 없습니다.</p>
+                ) : (
+                  <div className="posts">
+                    {posts.map((p) => (
+                      <div
+                        className="post"
+                        key={p.id}
+                        onClick={() => onNav("viewPost", p)}
+                      >
+                        <div className="post-content">
+                          <div className="post-title">{p.title}</div>
+                          <div className="post-meta">
+                            <span className="author">{p.author}</span>
+                            <span className="date">{p.date}</span>
+                          </div>
+                        </div>
+                        <div className="post-stats">
+                          <span className="stat">
+                            <span className="material-icons">visibility</span>
+                            {p.views || 0}
+                          </span>
+                          <button
+                            className={`stat like-btn ${
+                              p.is_liked ? "liked" : ""
+                            }`}
+                            onClick={(e) => handleLike(p.id, e)}
+                            title={p.is_liked ? "좋아요 취소" : "좋아요"}
+                          >
+                            <span className="material-icons">
+                              {p.is_liked ? "favorite" : "favorite_border"}
+                            </span>
+                            {p.likes || 0}
+                          </button>
                         </div>
                       </div>
-                      <div className="post-stats">
-                        <span className="stat">
-                          <span className="material-icons">visibility</span>
-                          {p.views || 0}
-                        </span>
-                        <button
-                          className={`stat like-btn ${
-                            p.is_liked ? "liked" : ""
-                          }`}
-                          onClick={(e) => handleLike(p.id, e)}
-                          title={p.is_liked ? "좋아요 취소" : "좋아요"}
-                        >
-                          <span className="material-icons">
-                            {p.is_liked ? "favorite" : "favorite_border"}
-                          </span>
-                          {p.likes || 0}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {totalCount > perPage && (
-                <div className="pagination">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    이전
-                  </button>
-                  <span>
-                    {currentPage} / {Math.ceil(totalCount / perPage)}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((p) =>
-                        Math.min(Math.ceil(totalCount / perPage), p + 1)
-                      )
-                    }
-                    disabled={currentPage >= Math.ceil(totalCount / perPage)}
-                  >
-                    다음
-                  </button>
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+                {totalCount > perPage && (
+                  <div className="pagination">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      이전
+                    </button>
+                    <span>
+                      {currentPage} / {Math.ceil(totalCount / perPage)}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(Math.ceil(totalCount / perPage), p + 1)
+                        )
+                      }
+                      disabled={currentPage >= Math.ceil(totalCount / perPage)}
+                    >
+                      다음
+                    </button>
+                  </div>
+                )}
+              </div>
               <aside className="side">
                 <div className="side-card">
                   <h4>인기 게시글</h4>
@@ -2028,10 +2052,11 @@
         );
       };
 
-      const Write = ({ onNav }) => {
+      const Write = ({ onNav, goBack, data }) => {
         const { user } = useAuth();
-        const [title, setTitle] = useState("");
-        const [content, setContent] = useState("");
+        const isEditMode = !!data; // 수정 모드인지 확인
+        const [title, setTitle] = useState(data?.title || "");
+        const [content, setContent] = useState(data?.content || "");
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState("");
 
@@ -2039,7 +2064,12 @@
           if (!user) {
             onNav("login");
           }
-        }, [user]);
+          // 수정 모드일 때 기존 데이터 로드
+          if (data && data.id) {
+            setTitle(data.title || "");
+            setContent(data.content || "");
+          }
+        }, [user, data]);
 
         const handleSubmit = async () => {
           if (!title || !content) {
@@ -2050,13 +2080,28 @@
           try {
             setLoading(true);
             setError("");
-            const result = await apiCall("/api/posts", {
-              method: "POST",
-              body: JSON.stringify({ title, content }),
-            });
-            onNav("writeSuccess", { post: result });
+
+            if (isEditMode && data.id) {
+              // 수정 모드: PUT 요청
+              const result = await apiCall(`/api/posts/${data.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ title, content }),
+              });
+              onNav("writeSuccess", { post: result });
+            } else {
+              // 작성 모드: POST 요청
+              const result = await apiCall("/api/posts", {
+                method: "POST",
+                body: JSON.stringify({ title, content }),
+              });
+              onNav("writeSuccess", { post: result });
+            }
           } catch (error) {
-            setError("등록 실패: " + error.message);
+            setError(
+              isEditMode
+                ? "수정 실패: " + error.message
+                : "등록 실패: " + error.message
+            );
           } finally {
             setLoading(false);
           }
@@ -2067,8 +2112,12 @@
         return (
           <div className="page write">
             <div className="write-header">
-              <h2>글쓰기</h2>
-              <p className="write-subtitle">커뮤니티에 글을 작성해보세요</p>
+              <h2>{isEditMode ? "글 수정" : "글쓰기"}</h2>
+              <p className="write-subtitle">
+                {isEditMode
+                  ? "게시글을 수정하세요"
+                  : "커뮤니티에 글을 작성해보세요"}
+              </p>
             </div>
             <div className="card">
               {error && (
@@ -2109,7 +2158,10 @@
                 />
               </label>
               <div className="actions">
-                <button onClick={() => onNav("community")} disabled={loading}>
+                <button
+                  onClick={goBack || (() => onNav("community"))}
+                  disabled={loading}
+                >
                   취소
                 </button>
                 <button
@@ -2117,7 +2169,13 @@
                   onClick={handleSubmit}
                   disabled={loading}
                 >
-                  {loading ? "등록 중..." : "등록하기"}
+                  {loading
+                    ? isEditMode
+                      ? "수정 중..."
+                      : "등록 중..."
+                    : isEditMode
+                    ? "수정하기"
+                    : "등록하기"}
                 </button>
               </div>
             </div>
@@ -2125,7 +2183,7 @@
         );
       };
 
-      const ViewPost = ({ data, onNav }) => {
+      const ViewPost = ({ data, onNav, goBack }) => {
         const { user } = useAuth();
         const [post, setPost] = useState(data);
         const [comments, setComments] = useState([]);
@@ -2176,7 +2234,7 @@
           }
 
           try {
-            const result = await apiCall(`/posts/${post.id}/like`, {
+            const result = await apiCall(`/api/posts/${post.id}/like`, {
               method: "POST",
             });
             setPost({
@@ -2217,7 +2275,10 @@
         return (
           <div className="page viewpost">
             <div className="post-view-header">
-              <button className="back-btn" onClick={() => onNav("community")}>
+              <button
+                className="back-btn"
+                onClick={goBack || (() => onNav("community"))}
+              >
                 <span className="material-icons">arrow_back</span>
                 목록으로
               </button>
@@ -2413,9 +2474,7 @@
               <div className="confirm-dialog-overlay">
                 <div className="confirm-dialog">
                   <h3>예약 취소 확인</h3>
-                  <p>
-                    {cancelConfirm.placeName}의 예약을 취소하시겠습니까?
-                  </p>
+                  <p>{cancelConfirm.placeName}의 예약을 취소하시겠습니까?</p>
                   <div className="confirm-actions">
                     <button onClick={() => setCancelConfirm(null)}>취소</button>
                     <button className="primary" onClick={confirmCancel}>
@@ -2456,7 +2515,10 @@
             {/* 빠른 링크 섹션 */}
             <div
               className="main-tabs"
-              style={{ marginBottom: "32px", gridTemplateColumns: "repeat(3, 1fr)" }}
+              style={{
+                marginBottom: "32px",
+                gridTemplateColumns: "repeat(3, 1fr)",
+              }}
             >
               <div
                 className="tab-card"
@@ -2601,7 +2663,10 @@
                                 fontSize: "14px",
                               }}
                             >
-                              <span className="material-icons" style={{ fontSize: "18px" }}>
+                              <span
+                                className="material-icons"
+                                style={{ fontSize: "18px" }}
+                              >
                                 schedule
                               </span>
                               <span>
@@ -2617,7 +2682,10 @@
                                 fontSize: "14px",
                               }}
                             >
-                              <span className="material-icons" style={{ fontSize: "18px" }}>
+                              <span
+                                className="material-icons"
+                                style={{ fontSize: "18px" }}
+                              >
                                 event
                               </span>
                               <span>
@@ -2633,7 +2701,10 @@
                                 fontSize: "14px",
                               }}
                             >
-                              <span className="material-icons" style={{ fontSize: "18px" }}>
+                              <span
+                                className="material-icons"
+                                style={{ fontSize: "18px" }}
+                              >
                                 pin_drop
                               </span>
                               <span>슬롯: {reservation.slot}번</span>
@@ -2667,7 +2738,7 @@
         );
       };
 
-      const ManagePosts = ({ onNav }) => {
+      const ManagePosts = ({ onNav, goBack }) => {
         const { user } = useAuth();
         const [posts, setPosts] = useState([]);
         const [loading, setLoading] = useState(true);
@@ -2702,7 +2773,9 @@
         const confirmDelete = async () => {
           if (!deleteConfirm) return;
           try {
-            await apiCall(`/posts/${deleteConfirm.id}`, { method: "DELETE" });
+            await apiCall(`/api/posts/${deleteConfirm.id}`, {
+              method: "DELETE",
+            });
             await loadMyPosts();
             setDeleteConfirm(null);
           } catch (error) {
@@ -2715,7 +2788,16 @@
 
         return (
           <div className="page manage-posts">
-            <h2>내 글 관리</h2>
+            <div className="page-header-with-back">
+              <button
+                className="back-btn"
+                onClick={goBack || (() => onNav("mypage"))}
+              >
+                <span className="material-icons">arrow_back</span>
+                <span>뒤로</span>
+              </button>
+              <h2>내 글 관리</h2>
+            </div>
             {error && (
               <div className="error-message">
                 <span className="material-icons">error</span>
@@ -2751,11 +2833,43 @@
               <div className="list">
                 {posts.map((m) => (
                   <div className="manage-item" key={m.id}>
-                    <div>{m.title}</div>
-                    <div className="actions">
-                      <button onClick={() => onNav("write", m)}>수정</button>
-                      <button onClick={() => handleDelete(m.id, m.title)}>
-                        삭제
+                    <div className="manage-item-content">
+                      <div className="manage-name">{m.title}</div>
+                      <div className="manage-meta">
+                        <span
+                          className="material-icons"
+                          style={{ fontSize: "16px", marginRight: "4px" }}
+                        >
+                          visibility
+                        </span>
+                        {m.views || 0} ·
+                        <span
+                          className="material-icons"
+                          style={{
+                            fontSize: "16px",
+                            marginLeft: "8px",
+                            marginRight: "4px",
+                          }}
+                        >
+                          favorite
+                        </span>
+                        {m.likes || 0}
+                      </div>
+                    </div>
+                    <div className="manage-actions">
+                      <button
+                        className="manage-action-btn edit-btn"
+                        onClick={() => onNav("write", m)}
+                        title="수정"
+                      >
+                        <span className="material-icons">edit</span>
+                      </button>
+                      <button
+                        className="manage-action-btn delete-btn"
+                        onClick={() => handleDelete(m.id, m.title)}
+                        title="삭제"
+                      >
+                        <span className="material-icons">delete</span>
                       </button>
                     </div>
                   </div>
@@ -3119,6 +3233,9 @@
       };
 
       function Router() {
+        // 스택 기반 네비게이션 히스토리 관리
+        // 스택(Stack): LIFO 구조 → 이전 페이지/이전 검색 조건 되돌리기(undo), 깊이우선 탐색 같은 데 사용.
+        const [navigationStack, setNavigationStack] = useState([]);
         const [route, setRoute] = useState({
           name: "home",
           data: null,
@@ -3130,8 +3247,28 @@
           document.title = "PlinkU - " + route.name;
         }, [route]);
 
-        const nav = (name, data = null, fromPage = null) =>
+        // 네비게이션 함수: 스택에 현재 경로를 저장하고 새 경로로 이동
+        const nav = (name, data = null, fromPage = null) => {
+          // 현재 경로를 스택에 push (스택: LIFO 구조)
+          setNavigationStack((prev) => [
+            ...prev,
+            { name: route.name, data: route.data, fromPage: route.fromPage },
+          ]);
           setRoute({ name, data, fromPage });
+        };
+
+        // 뒤로가기 함수: 스택에서 이전 경로를 pop하여 이동
+        const goBack = () => {
+          if (navigationStack.length > 0) {
+            // 스택에서 마지막 항목을 pop (스택: LIFO 구조)
+            const previousRoute = navigationStack[navigationStack.length - 1];
+            setNavigationStack((prev) => prev.slice(0, -1));
+            setRoute(previousRoute);
+          } else {
+            // 스택이 비어있으면 홈으로 이동
+            setRoute({ name: "home", data: null, fromPage: null });
+          }
+        };
 
         if (showSplash) {
           return <Splash onComplete={() => setShowSplash(false)} />;
@@ -3145,13 +3282,14 @@
                 {route.name === "home" && <Home onNav={nav} />}
                 {route.name === "finder" && <Finder onNav={nav} />}
                 {route.name === "detail" && (
-                  <Detail data={route.data} onNav={nav} />
+                  <Detail data={route.data} onNav={nav} goBack={goBack} />
                 )}
                 {route.name === "reserve" && (
                   <Reserve
                     data={route.data}
                     onNav={nav}
                     fromPage={route.fromPage}
+                    goBack={goBack}
                   />
                 )}
                 {route.name === "complete" && (
@@ -3159,7 +3297,7 @@
                 )}
                 {route.name === "ev" && <EV onNav={nav} />}
                 {route.name === "evDetail" && (
-                  <EVDetail data={route.data} onNav={nav} />
+                  <EVDetail data={route.data} onNav={nav} goBack={goBack} />
                 )}
                 {route.name === "market" && <Market onNav={nav} />}
                 {route.name === "register" && (
@@ -3168,16 +3306,22 @@
                 {route.name === "registerComplete" && (
                   <RegisterComplete info={route.data} onNav={nav} />
                 )}
-                {route.name === "manage" && <Manage onNav={nav} />}
+                {route.name === "manage" && (
+                  <Manage onNav={nav} goBack={goBack} />
+                )}
                 {route.name === "community" && <Community onNav={nav} />}
-                {route.name === "write" && <Write onNav={nav} />}
+                {route.name === "write" && (
+                  <Write onNav={nav} goBack={goBack} data={route.data} />
+                )}
                 {route.name === "writeSuccess" && (
                   <WriteSuccess data={route.data} onNav={nav} />
                 )}
                 {route.name === "viewPost" && (
-                  <ViewPost data={route.data} onNav={nav} />
+                  <ViewPost data={route.data} onNav={nav} goBack={goBack} />
                 )}
-                {route.name === "managePosts" && <ManagePosts onNav={nav} />}
+                {route.name === "managePosts" && (
+                  <ManagePosts onNav={nav} goBack={goBack} />
+                )}
                 {route.name === "login" && <Login onNav={nav} />}
                 {route.name === "loginSuccess" && <LoginSuccess onNav={nav} />}
                 {route.name === "signup" && <Signup onNav={nav} />}
