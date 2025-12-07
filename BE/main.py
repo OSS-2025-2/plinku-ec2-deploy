@@ -661,6 +661,92 @@ def get_reservation(reservation_id):
     return jsonify(reservation)
 
 
+@app.route('/api/my-reservations', methods=['GET'])
+@require_auth
+def get_my_reservations():
+    """
+    내 예약 목록 조회
+    리스트 컴프리헨션: 필터링 결과 만드는 데 사용
+    """
+    # 리스트 컴프리헨션으로 내 예약 필터링
+    my_reservations = [
+        reservation for reservation in reservations.values()
+        if reservation.get('user_id') == request.user_id
+    ]
+    
+    # 예약 정보에 장소 정보 추가
+    for reservation in my_reservations:
+        place_id = reservation.get('place_id')
+        place_type = reservation.get('place_type', 'parking')
+        
+        if place_type == 'parking':
+            place_data = parking_spots.get(place_id)
+        elif place_type == 'ev':
+            place_data = ev_stations.get(place_id)
+        else:
+            place_data = None
+        
+        if place_data:
+            reservation['place_name'] = place_data.get('name', '알 수 없음')
+            reservation['place_address'] = place_data.get('address', '')
+        else:
+            reservation['place_name'] = '삭제된 장소'
+            reservation['place_address'] = ''
+    
+    # 날짜순 정렬 (최신순)
+    my_reservations.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    return jsonify({
+        'reservations': my_reservations,
+        'count': len(my_reservations)
+    })
+
+
+@app.route('/api/reservations/<int:reservation_id>', methods=['DELETE'])
+@require_auth
+def cancel_reservation(reservation_id):
+    """
+    예약 취소
+    Dictionary 기반 조회(O(1)) - Reservation 빠른 조회 구조
+    """
+    reservation = reservations.get(reservation_id)
+    if not reservation:
+        return jsonify({'error': 'Reservation not found'}), 404
+    
+    # 소유자 확인
+    if reservation['user_id'] != request.user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    # 예약 취소 처리
+    place_id = reservation.get('place_id')
+    place_type = reservation.get('place_type', 'parking')
+    slot = reservation.get('slot')
+    
+    # 예약된 슬롯 해제
+    reserved_key = f"{place_type}:{place_id}"
+    if reserved_key in reserved_slots:
+        reserved_slots[reserved_key].discard(slot)
+    
+    # 가용성 업데이트
+    if place_type == 'parking':
+        place_data = parking_spots.get(place_id)
+    elif place_type == 'ev':
+        place_data = ev_stations.get(place_id)
+    else:
+        place_data = None
+    
+    if place_data:
+        place_data['available'] = min(
+            place_data.get('total', 0),
+            place_data.get('available', 0) + 1
+        )
+    
+    # 예약 삭제
+    del reservations[reservation_id]
+    
+    return jsonify({'message': 'Reservation cancelled'})
+
+
 # ============================================================================
 # 커뮤니티 API
 # ============================================================================
