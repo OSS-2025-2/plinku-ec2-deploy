@@ -1,0 +1,18 @@
+services:
+  backend:
+    build: ./BE
+    container_name: plinku-back
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./BE/instance:/app/instance
+    restart: always
+
+  frontend:
+    build: ./FE
+    container_name: plinku-front
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
