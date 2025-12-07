@@ -1638,9 +1638,9 @@
               <button
                 className="back-btn"
                 onClick={goBack || (() => onNav("mypage"))}
+                title="뒤로가기"
               >
                 <span className="material-icons">arrow_back</span>
-                <span>뒤로</span>
               </button>
               <h2>장소 관리하기</h2>
             </div>
@@ -2278,10 +2278,13 @@
               <button
                 className="back-btn"
                 onClick={goBack || (() => onNav("community"))}
+                title="뒤로가기"
               >
                 <span className="material-icons">arrow_back</span>
-                목록으로
               </button>
+              <h2 style={{ margin: 0, textAlign: "center", flex: 1 }}>
+                게시글
+              </h2>
             </div>
             {error && (
               <div className="error-message">
@@ -2792,9 +2795,9 @@
               <button
                 className="back-btn"
                 onClick={goBack || (() => onNav("mypage"))}
+                title="뒤로가기"
               >
                 <span className="material-icons">arrow_back</span>
-                <span>뒤로</span>
               </button>
               <h2>내 글 관리</h2>
             </div>
@@ -3118,7 +3121,7 @@
         );
       };
 
-      const FavoritesPage = ({ onNav }) => {
+      const FavoritesPage = ({ onNav, goBack }) => {
         const { user } = useAuth();
         const [favorites, setFavorites] = useState([]);
         const [loading, setLoading] = useState(true);
@@ -3159,7 +3162,15 @@
 
         return (
           <div className="page favorites-page">
-            <h2>즐겨찾는 장소</h2>
+            <div className="page-header-with-back">
+              <button
+                className="back-btn"
+                onClick={goBack || (() => onNav("mypage"))}
+              >
+                <span className="material-icons">arrow_back</span>
+              </button>
+              <h2>즐겨찾는 장소</h2>
+            </div>
             {error && (
               <div className="error-message">
                 <span className="material-icons">error</span>
@@ -3328,7 +3339,9 @@
                 {route.name === "signupSuccess" && (
                   <SignupSuccess onNav={nav} />
                 )}
-                {route.name === "favorites" && <FavoritesPage onNav={nav} />}
+                {route.name === "favorites" && (
+                  <FavoritesPage onNav={nav} goBack={goBack} />
+                )}
                 {route.name === "mypage" && <MyPage onNav={nav} />}
               </div>
               <footer className="app-footer">

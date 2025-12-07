@@ -41,14 +41,18 @@ PlinkU 플랫폼은 다음 기능을 제공합니다:
 
 - 주차장·EV 충전 슬롯 예약
 - 예약 상세 조회
+- 내 예약 목록 조회
+- 예약 취소
 
 ### 📝 커뮤니티
 
-- 게시글 CRUD
+- 게시글 CRUD (작성, 조회, 수정, 삭제)
+- 내 게시글 관리
 - 댓글 작성
 - 좋아요 기능
 - 인기 게시글 정렬
 - 조회수, 날짜, 좋아요 기반 필터
+- 페이지네이션 지원
 
 ---
 
@@ -75,10 +79,13 @@ PlinkU 플랫폼은 다음 기능을 제공합니다:
 | ---------- | ------------------------------------------- |
 | UI         | HTML + CSS                                  |
 | 라이브러리 | React 18 (CDN), Material Icons              |
-| 구조       | SPA                                         |
+| 구조       | SPA (Single Page Application)               |
+| 네비게이션 | 스택 기반 라우팅 (뒤로가기 기능)            |
 | 스타일     | Apple SD Gothic Neo 기반 전체 커스텀 디자인 |
+| API 통신   | Fetch API, CORS 지원                        |
 
-> 전체 스타일 정의: `styles.css` 참고
+> 전체 스타일 정의: `FE/styles.css` 참고  
+> 프론트엔드 코드: `FE/index.html` (React CDN 기반, Babel Standalone 사용)
 
 ---
 
@@ -87,15 +94,17 @@ PlinkU 플랫폼은 다음 기능을 제공합니다:
 ```
 /plinku-ec2-deploy
  ├── BE/
- │   ├── main.py           # Flask REST API 서버 (메인 엔트리 포인트)
- │   ├── requirements.txt  # 백엔드 의존성
+ │   ├── main.py           # Flask REST API 서버 (메인 엔트리 포인트, 모든 API 구현)
+ │   ├── requirements.txt  # 백엔드 의존성 (Flask, Flask-CORS, gunicorn)
  │   ├── Dockerfile        # 백엔드 Docker 이미지 빌드 파일
- │   └── app/              # 애플리케이션 모듈 (models, routes, services)
+ │   ├── instance/         # SQLite 데이터베이스 저장 디렉토리
+ │   └── app/              # 애플리케이션 모듈 디렉토리 (현재 미사용)
  ├── FE/
- │   ├── index.html        # Frontend SPA 엔트리 파일
- │   ├── styles.css        # UI 전체 스타일
- │   └── Dockerfile        # 프론트엔드 Docker 이미지 빌드 파일
- └── docker-compose.yml    # Docker Compose 설정 파일
+ │   ├── index.html        # Frontend SPA 엔트리 파일 (React CDN 기반)
+ │   ├── styles.css        # UI 전체 스타일 (Apple SD Gothic Neo 폰트)
+ │   ├── Dockerfile        # 프론트엔드 Docker 이미지 빌드 파일
+ │   └── README.md         # 프론트엔드 README
+ └── docker-compose.yml    # Docker Compose 설정 파일 (백엔드:8000, 프론트:80)
 ```
 
 ---
@@ -112,97 +121,132 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 ### 2. 의존성 설치
 
 ```bash
+cd BE
 pip install -r requirements.txt
 ```
 
 ### 3. 서버 실행
 
 ```bash
+cd BE
 python main.py
 ```
 
-또는 Docker Compose를 사용하여 실행:
+서버는 기본적으로 `http://localhost:5000`에서 실행됩니다.
+
+> **참고**: 서버 실행 시 `init_dummy_data()` 함수가 자동으로 실행되어 시연용 더미 데이터가 생성됩니다.
+>
+> - Admin 계정: `admin` / `admin`
+> - 주차장 7개, 충전소 6개
+> - 게시글 20개
+> - 예약 데이터 포함
+
+### 4. Docker Compose를 사용한 실행 (권장)
+
+프로젝트 루트에서:
 
 ```bash
 docker-compose up -d
 ```
 
+- 백엔드: `http://localhost:8000`
+- 프론트엔드: `http://localhost:80`
+
+### 5. 프론트엔드 개발 서버 실행 (선택)
+
+프론트엔드를 별도로 실행하려면:
+
+```bash
+cd FE
+# 간단한 HTTP 서버 실행 (Python 3)
+python -m http.server 3000
+```
+
+프론트엔드는 `http://localhost:3000`에서 실행됩니다.
+
+> **참고**: 프론트엔드의 API_BASE는 `http://localhost:5000`으로 설정되어 있습니다. (`index.html` 37번째 줄)
+
 ---
 
 ## 📡 API 엔드포인트 요약
 
-백엔드 전체 API 구현은 `main.py` 참고:
+백엔드 전체 API 구현은 `BE/main.py` 참고:
+
+> **참고**: 모든 API는 `/api/` 접두사를 사용하며, 인증이 필요한 API는 `X-User-Id` 헤더를 요구합니다.
 
 ---
 
 ### 🔐 인증 API
 
-| METHOD | URL         | 설명     |
-| ------ | ----------- | -------- |
-| POST   | /api/signup | 회원가입 |
-| POST   | /api/login  | 로그인   |
-| POST   | /api/logout | 로그아웃 |
+| METHOD | URL         | 설명      | 인증 필요 |
+| ------ | ----------- | --------- | --------- |
+| GET    | /api/health | 헬스 체크 | ❌        |
+| POST   | /api/signup | 회원가입  | ❌        |
+| POST   | /api/login  | 로그인    | ❌        |
+| POST   | /api/logout | 로그아웃  | ❌        |
 
 ---
 
 ### 🚗 주차장 API
 
-| METHOD | URL                    | 설명           |
-| ------ | ---------------------- | -------------- |
-| GET    | /api/parking-spots     | 주차장 목록    |
-| GET    | /api/parking-spots/:id | 주차장 상세    |
-| POST   | /api/parking-spots     | 주차장 등록    |
-| PUT    | /api/parking-spots/:id | 주차장 수정    |
-| DELETE | /api/parking-spots/:id | 주차장 삭제    |
-| GET    | /api/my-parking-spots  | 내 소유 주차장 |
+| METHOD | URL                    | 설명           | 인증 필요 |
+| ------ | ---------------------- | -------------- | --------- |
+| GET    | /api/parking-spots     | 주차장 목록    | ❌        |
+| GET    | /api/parking-spots/:id | 주차장 상세    | ❌        |
+| POST   | /api/parking-spots     | 주차장 등록    | ✅        |
+| PUT    | /api/parking-spots/:id | 주차장 수정    | ✅        |
+| DELETE | /api/parking-spots/:id | 주차장 삭제    | ✅        |
+| GET    | /api/my-parking-spots  | 내 소유 주차장 | ✅        |
 
 ---
 
 ### ⭐ 즐겨찾기 API
 
-| METHOD | URL                | 설명          |
-| ------ | ------------------ | ------------- |
-| GET    | /api/favorites     | 즐겨찾기 목록 |
-| POST   | /api/favorites/:id | 즐겨찾기 추가 |
-| DELETE | /api/favorites/:id | 즐겨찾기 삭제 |
+| METHOD | URL                | 설명          | 인증 필요 |
+| ------ | ------------------ | ------------- | --------- |
+| GET    | /api/favorites     | 즐겨찾기 목록 | ✅        |
+| POST   | /api/favorites/:id | 즐겨찾기 추가 | ✅        |
+| DELETE | /api/favorites/:id | 즐겨찾기 삭제 | ✅        |
 
 ---
 
 ### 🔌 EV 충전소 API
 
-| METHOD | URL                  | 설명        |
-| ------ | -------------------- | ----------- |
-| GET    | /api/ev-stations     | 충전소 목록 |
-| GET    | /api/ev-stations/:id | 충전소 상세 |
-| POST   | /api/ev-stations     | 충전소 등록 |
-| PUT    | /api/ev-stations/:id | 충전소 수정 |
-| DELETE | /api/ev-stations/:id | 충전소 삭제 |
-| GET    | /api/my-ev-stations  | 내 충전소   |
+| METHOD | URL                  | 설명        | 인증 필요 |
+| ------ | -------------------- | ----------- | --------- |
+| GET    | /api/ev-stations     | 충전소 목록 | ❌        |
+| GET    | /api/ev-stations/:id | 충전소 상세 | ❌        |
+| POST   | /api/ev-stations     | 충전소 등록 | ✅        |
+| PUT    | /api/ev-stations/:id | 충전소 수정 | ✅        |
+| DELETE | /api/ev-stations/:id | 충전소 삭제 | ✅        |
+| GET    | /api/my-ev-stations  | 내 충전소   | ✅        |
 
 ---
 
 ### 🧾 예약 API
 
-| METHOD | URL                   | 설명      |
-| ------ | --------------------- | --------- |
-| POST   | /api/reservations     | 예약 생성 |
-| GET    | /api/reservations/:id | 예약 조회 |
+| METHOD | URL                   | 설명         |
+| ------ | --------------------- | ------------ |
+| POST   | /api/reservations     | 예약 생성    |
+| GET    | /api/reservations/:id | 예약 조회    |
+| GET    | /api/my-reservations  | 내 예약 목록 |
+| DELETE | /api/reservations/:id | 예약 취소    |
 
 ---
 
 ### 📝 커뮤니티 API
 
-| METHOD | URL                     | 설명             |
-| ------ | ----------------------- | ---------------- |
-| GET    | /api/posts              | 게시글 목록      |
-| GET    | /api/posts/:id          | 게시글 상세      |
-| POST   | /api/posts              | 게시글 작성      |
-| PUT    | /api/posts/:id          | 게시글 수정      |
-| DELETE | /api/posts/:id          | 게시글 삭제      |
-| GET    | /api/my-posts           | 내 게시글 목록   |
-| POST   | /api/posts/:id/comments | 댓글 작성        |
-| POST   | /api/posts/:id/like     | 좋아요 토글      |
-| GET    | /api/posts/popular      | 인기 게시글 목록 |
+| METHOD | URL                     | 설명             | 인증 필요 |
+| ------ | ----------------------- | ---------------- | --------- |
+| GET    | /api/posts              | 게시글 목록      | ❌        |
+| GET    | /api/posts/:id          | 게시글 상세      | ❌        |
+| POST   | /api/posts              | 게시글 작성      | ✅        |
+| PUT    | /api/posts/:id          | 게시글 수정      | ✅        |
+| DELETE | /api/posts/:id          | 게시글 삭제      | ✅        |
+| GET    | /api/my-posts           | 내 게시글 목록   | ✅        |
+| POST   | /api/posts/:id/comments | 댓글 작성        | ✅        |
+| POST   | /api/posts/:id/like     | 좋아요 토글      | ✅        |
+| GET    | /api/posts/popular      | 인기 게시글 목록 | ❌        |
 
 ---
 
@@ -298,7 +342,8 @@ docker-compose up -d
 
 **스택(Stack)**: LIFO 구조 → 이전 페이지/이전 검색 조건 되돌리기(undo), 깊이우선 탐색 같은 데 사용.
 
-- `navigation_stack: List[Dict]` - 네비게이션 히스토리 스택
+- 프론트엔드: `navigationStack` - React Router의 네비게이션 히스토리 스택 (뒤로가기 기능 구현)
+- 백엔드: `navigation_stack: List[Dict]` - 네비게이션 히스토리 스택 (참고용)
 
 **함수 호출 스택 개념**: 재귀, 예외 처리, 콜 스택 이해에 필요 → 복잡한 재귀 알고리즘 디버깅할 때 머릿속 모델.
 
@@ -311,6 +356,32 @@ docker-compose up -d
 ### 9) 시퀀스 관련 실수/주의 포인트
 
 **슬라이스에 할당 / del**: 슬라이싱을 이용해 중간 구간 삭제/치환 → 페이징 결과에서 특정 구간 제거, 다수 레코드 한번에 교체에 응용.
+
+---
+
+## 🎯 주요 기능 상세
+
+### 프론트엔드 기능
+
+- **스택 기반 네비게이션**: 뒤로가기 버튼이 스택을 사용하여 이전 페이지로 이동 (LIFO 구조)
+- **반응형 디자인**: 모바일/데스크톱 대응
+- **실시간 UI 업데이트**: API 호출 후 자동 리프레시
+- **에러 처리**: 사용자 친화적인 에러 메시지 표시
+- **로딩 상태 표시**: 비동기 작업 중 로딩 인디케이터
+- **페이지네이션**: 커뮤니티 게시글 목록 페이징 지원
+- **즐겨찾기 UI**: 주황색(#ff6b35) 별 아이콘으로 표시
+
+### 백엔드 기능
+
+- **시연용 더미 데이터**: 서버 시작 시 자동 생성 (`init_dummy_data()`)
+  - Admin 계정: `admin` / `admin`
+  - 주차장 7개 (한밭대 N4, N11 포함)
+  - 충전소 6개 (한밭대 국제교류관 포함)
+  - 게시글 20개 (좋아요, 조회수 포함)
+  - 예약 데이터 3개
+- **인메모리 데이터 저장**: Dictionary/Set 기반 빠른 조회
+- **데코레이터 기반 인증**: `@require_auth`, `@validate_required_fields`
+- **CORS 지원**: 프론트엔드와의 통신을 위한 CORS 설정
 
 ---
 

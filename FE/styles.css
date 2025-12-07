@@ -709,12 +709,21 @@ label {
 .page-header-with-back {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 16px;
   margin-bottom: 24px;
+  position: relative;
 }
 .page-header-with-back h2 {
   margin: 0;
+  text-align: center;
   flex: 1;
+}
+.page-header-with-back .back-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* center card for completion */
@@ -952,27 +961,49 @@ label {
 /* post view page */
 .post-view-header {
   margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 40px;
+}
+.post-view-header h2 {
+  margin: 0;
+  text-align: center;
+  flex: 1;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+}
+.post-view-header .back-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 .back-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: 0;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--muted);
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  padding: 0;
+  border-radius: 50%;
   transition: all 0.2s ease;
-  font-size: 14px;
-  font-weight: 500;
+  flex-shrink: 0;
 }
 .back-btn:hover {
-  background: var(--glass);
-  color: #fff;
+  background: rgba(255, 107, 53, 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-50%) translateX(-2px);
 }
 .back-btn .material-icons {
-  font-size: 20px;
+  font-size: 24px;
 }
 .post-view-card {
   background: var(--panel);
@@ -1323,12 +1354,37 @@ label {
 .edit-actions {
   display: flex;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
 }
 .edit-actions button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: var(--radius-sm);
   font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+.edit-actions button:first-child {
+  background: linear-gradient(135deg, #e25319 0%, #ff6b35 100%);
+  color: #fff;
+  border-color: transparent;
+}
+.edit-actions button:first-child:hover {
+  background: linear-gradient(135deg, #c94515 0%, #e25319 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(226, 83, 25, 0.3);
+}
+.edit-actions button:last-child {
+  background: var(--glass);
+  color: var(--muted);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.edit-actions button:last-child:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* type selector */
@@ -1457,7 +1513,8 @@ label {
   color: var(--muted);
   font-size: 13px;
   margin-top: 60px;
-  background: transparent;
+  background: none;
+  border: none;
 }
 
 /* page titles */
